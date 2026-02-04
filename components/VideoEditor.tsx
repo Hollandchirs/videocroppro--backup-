@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useVideoStore } from "@/lib/store";
-import { calculateCropRegion, extractFrame } from "@/lib/videoProcessor";
+import { calculateCropRegion } from "@/lib/videoProcessor";
 import { getPlatformById } from "@/lib/platforms";
 import {
   detectFacesWithSpeakingDetection,
@@ -28,11 +28,11 @@ export function VideoEditor() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
-  const [timelineFrames, setTimelineFrames] = useState<string[]>([]);
-  const [isGeneratingTimeline, setIsGeneratingTimeline] = useState(false);
   const [generatedClips, setGeneratedClips] = useState<VideoClip[]>([]);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const previousRatioRef = useRef<string | null>(null);
+  const previousStrategyRef = useRef<string | null>(null);
+  const analysisPendingRef = useRef<string | null>(null);
 
   const {
     videoFile,
@@ -57,15 +57,31 @@ export function VideoEditor() {
     setCurrentAnalyzingRatio,
     setEditProject,
     setCurrentEditProject,
+    cropStrategy,
   } = useVideoStore();
 
   const targetPlatform = selectedPlatforms[0]
     ? getPlatformById(selectedPlatforms[0])
     : null;
 
-  const getProjectId = useCallback((ratio: string) => {
+  // Create default clip when video is loaded (before any analysis)
+  useEffect(() => {
+    if (videoFile && cropRegion && generatedClips.length === 0) {
+      const defaultClip: VideoClip = {
+        id: `clip_default_${Date.now()}`,
+        startTime: 0,
+        endTime: videoFile.duration,
+        cropPosition: { x: cropRegion.x, y: cropRegion.y },
+        speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
+        useFullFrame: false,
+      };
+      setGeneratedClips([defaultClip]);
+    }
+  }, [videoFile, cropRegion, generatedClips.length]);
+
+  const getProjectId = useCallback((ratio: string, strategy: string) => {
     if (!videoFile) return null;
-    return `${videoFile.file.name}-${ratio}`;
+    return `${videoFile.file.name}-${ratio}-${strategy}`;
   }, [videoFile]);
 
   const runBlackBarDetection = useCallback(async () => {
@@ -178,31 +194,117 @@ export function VideoEditor() {
     return project;
   }, [videoFile, cropRegion, safeArea, blackBars, runBlackBarDetection, setAnalysisProgress]);
 
-  const triggerAnalysis = useCallback(async (ratio: string) => {
+  // Generate center crop position (after black bar removal)
+  const getCenterCropPosition = useCallback((
+    safeAreaWidth: number,
+    safeAreaHeight: number,
+    cropWidth: number,
+    cropHeight: number,
+    safeAreaX: number,
+    safeAreaY: number
+  ) => {
+    const centerX = safeAreaX + (safeAreaWidth - cropWidth) / 2;
+    const centerY = safeAreaY + (safeAreaHeight - cropHeight) / 2;
+    return {
+      x: Math.max(0, centerX),
+      y: Math.max(0, centerY),
+    };
+  }, []);
+
+  const triggerAnalysis = useCallback(async (ratio: string, strategy: string = cropStrategy) => {
     if (!videoFile || !cropRegion) return;
 
-    if (hasAnalyzedRatio(ratio)) {
-      const projectId = getProjectId(ratio);
+    const projectKey = `${ratio}-${strategy}`;
+
+    // Check for saved analysis results first
+    if (hasAnalyzedRatio(projectKey)) {
+      const projectId = getProjectId(ratio, strategy);
       if (projectId) {
         const savedProject = loadEditProject(projectId);
-        if (savedProject) {
+        if (savedProject && savedProject.clips && savedProject.clips.length > 0) {
           setCurrentEditProject(savedProject);
           setGeneratedClips(savedProject.clips);
+          if (savedProject.blackBars) {
+            setBlackBars(savedProject.blackBars);
+          }
           return;
         }
       }
     }
 
-    if (isAnalyzing && currentAnalyzingRatio !== ratio) {
+    // If currently analyzing a different ratio/strategy, cancel and queue new analysis
+    if (isAnalyzing && currentAnalyzingRatio !== projectKey) {
       cancelCurrentAnalysis();
+      analysisPendingRef.current = ratio;
+      return;
     }
 
-    if (isAnalyzing && currentAnalyzingRatio === ratio) return;
+    // Already analyzing this ratio/strategy
+    if (isAnalyzing && currentAnalyzingRatio === projectKey) return;
 
+    // Clear pending analysis since we're starting it now
+    analysisPendingRef.current = null;
+
+    // Center Crop mode: black bar detection + center crop, always 1 clip
+    if (strategy === "center-crop") {
+      setIsAnalyzing(true);
+      setCurrentAnalyzingRatio(projectKey);
+      setAnalysisProgress(0);
+      setGeneratedClips([]);
+
+      try {
+        const blackBarResult = await runBlackBarDetection();
+        const currentSafeArea = blackBarResult?.safeArea || {
+          x: 0, y: 0, width: videoFile.width, height: videoFile.height
+        };
+
+        const centerPos = getCenterCropPosition(
+          currentSafeArea.width, currentSafeArea.height,
+          cropRegion.width, cropRegion.height,
+          currentSafeArea.x, currentSafeArea.y
+        );
+
+        const clips: VideoClip[] = [{
+          id: `clip_${Date.now()}`,
+          startTime: 0,
+          endTime: videoFile.duration,
+          cropPosition: centerPos,
+          speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
+          useFullFrame: false,
+        }];
+
+        const project: EditProject = {
+          clips, blackBars: blackBarResult, trajectory: [], targetAspectRatio: ratio,
+        };
+
+        const projectId = getProjectId(ratio, strategy);
+        if (projectId) saveEditProject(project, projectId);
+        setEditProject(projectKey, project);
+        addAnalyzedRatio(projectKey);
+        setCurrentEditProject(project);
+        setGeneratedClips(clips);
+        setCropPosition(centerPos);
+      } finally {
+        setIsAnalyzing(false);
+        setCurrentAnalyzingRatio(null);
+        setAnalysisProgress(1);
+
+        if (analysisPendingRef.current) {
+          const pendingRatio = analysisPendingRef.current;
+          analysisPendingRef.current = null;
+          setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+        }
+      }
+      return;
+    }
+
+    // Smart Crop mode
+    // 16:9 - only black bar detection, no subject analysis
     if (ratio === "16:9") {
       setIsAnalyzing(true);
-      setCurrentAnalyzingRatio(ratio);
+      setCurrentAnalyzingRatio(projectKey);
       setAnalysisProgress(0);
+      setGeneratedClips([]);
 
       try {
         const blackBarResult = await runBlackBarDetection();
@@ -219,24 +321,31 @@ export function VideoEditor() {
           clips, blackBars: blackBarResult, trajectory: [], targetAspectRatio: ratio,
         };
 
-        const projectId = getProjectId(ratio);
+        const projectId = getProjectId(ratio, strategy);
         if (projectId) saveEditProject(project, projectId);
-        setEditProject(ratio, project);
-        addAnalyzedRatio(ratio);
+        setEditProject(projectKey, project);
+        addAnalyzedRatio(projectKey);
         setCurrentEditProject(project);
         setGeneratedClips(clips);
       } finally {
         setIsAnalyzing(false);
         setCurrentAnalyzingRatio(null);
         setAnalysisProgress(1);
+
+        if (analysisPendingRef.current) {
+          const pendingRatio = analysisPendingRef.current;
+          analysisPendingRef.current = null;
+          setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+        }
       }
       return;
     }
 
+    // Other ratios in Smart Crop mode - full subject analysis
     const abortController = new AbortController();
     setAnalysisAbortController(abortController);
     setIsAnalyzing(true);
-    setCurrentAnalyzingRatio(ratio);
+    setCurrentAnalyzingRatio(projectKey);
     setAnalysisProgress(0);
     setGeneratedClips([]);
 
@@ -244,12 +353,19 @@ export function VideoEditor() {
       await runBlackBarDetection();
       const project = await runHardCutAnalysis(ratio, abortController.signal);
 
-      if (!project || abortController.signal.aborted) return;
+      if (!project || abortController.signal.aborted) {
+        if (analysisPendingRef.current) {
+          const pendingRatio = analysisPendingRef.current;
+          analysisPendingRef.current = null;
+          setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+        }
+        return;
+      }
 
-      const projectId = getProjectId(ratio);
+      const projectId = getProjectId(ratio, strategy);
       if (projectId) saveEditProject(project, projectId);
-      setEditProject(ratio, project);
-      addAnalyzedRatio(ratio);
+      setEditProject(projectKey, project);
+      addAnalyzedRatio(projectKey);
       setCurrentEditProject(project);
       setGeneratedClips(project.clips);
 
@@ -260,11 +376,17 @@ export function VideoEditor() {
       setIsAnalyzing(false);
       setCurrentAnalyzingRatio(null);
       setAnalysisAbortController(null);
+
+      if (analysisPendingRef.current) {
+        const pendingRatio = analysisPendingRef.current;
+        analysisPendingRef.current = null;
+        setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+      }
     }
   }, [
-    videoFile, cropRegion, isAnalyzing, currentAnalyzingRatio,
-    hasAnalyzedRatio, getProjectId, cancelCurrentAnalysis,
-    runBlackBarDetection, runHardCutAnalysis,
+    videoFile, cropRegion, cropStrategy, isAnalyzing, currentAnalyzingRatio,
+    hasAnalyzedRatio, getProjectId, cancelCurrentAnalysis, getCenterCropPosition,
+    runBlackBarDetection, runHardCutAnalysis, setBlackBars,
     setIsAnalyzing, setCurrentAnalyzingRatio, setAnalysisProgress,
     setAnalysisAbortController, setEditProject, addAnalyzedRatio, setCurrentEditProject,
   ]);
@@ -278,12 +400,16 @@ export function VideoEditor() {
       }
 
       const newRatio = targetPlatform.aspectRatio;
-      if (previousRatioRef.current !== newRatio) {
+      const ratioChanged = previousRatioRef.current !== newRatio;
+      const strategyChanged = previousStrategyRef.current !== cropStrategy;
+
+      if (ratioChanged || strategyChanged) {
         previousRatioRef.current = newRatio;
-        setTimeout(() => triggerAnalysis(newRatio), 100);
+        previousStrategyRef.current = cropStrategy;
+        setTimeout(() => triggerAnalysis(newRatio, cropStrategy), 100);
       }
     }
-  }, [videoFile, targetPlatform, setCropRegion, cropRegion, triggerAnalysis]);
+  }, [videoFile, targetPlatform, cropStrategy, setCropRegion, cropRegion, triggerAnalysis]);
 
   const prevCropPositionRef = useRef(cropPosition);
   useEffect(() => {
@@ -292,17 +418,6 @@ export function VideoEditor() {
       setCropRegion({ ...cropRegion, x: cropPosition.x, y: cropPosition.y });
     }
   }, [cropPosition.x, cropPosition.y, cropRegion, setCropRegion]);
-
-  useEffect(() => {
-    if (!videoFile) { setTimelineFrames([]); return; }
-    let isActive = true;
-    setIsGeneratingTimeline(true);
-    generateTimelineFrames(videoFile.url, videoFile.duration, 14)
-      .then((frames) => { if (isActive) setTimelineFrames(frames); })
-      .catch(() => { if (isActive) setTimelineFrames([]); })
-      .finally(() => { if (isActive) setIsGeneratingTimeline(false); });
-    return () => { isActive = false; };
-  }, [videoFile?.url, videoFile?.duration]);
 
   const drawFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !videoFile) return;
@@ -317,7 +432,12 @@ export function VideoEditor() {
     if (generatedClips.length > 0) {
       const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
       if (currentClip) {
-        currentCropPos = currentClip.cropPosition;
+        // When editing selected clip, use the live cropPosition for immediate feedback
+        if (selectedClipId && currentClip.id === selectedClipId) {
+          currentCropPos = cropPosition;
+        } else {
+          currentCropPos = currentClip.cropPosition;
+        }
         isLetterbox = currentClip.useFullFrame || false;
       }
     }
@@ -356,7 +476,7 @@ export function VideoEditor() {
       canvas.height = videoFile.height;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
-  }, [videoFile, cropRegion, cropPosition, currentTime, generatedClips]);
+  }, [videoFile, cropRegion, cropPosition, currentTime, generatedClips, selectedClipId]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -393,25 +513,80 @@ export function VideoEditor() {
     return () => video.removeEventListener("seeked", handleSeek);
   }, [videoFile, currentTime, drawFrame]);
 
+  // Handle clip select from timeline - single click enables editing
+  const handleClipSelect = useCallback((clipId: string | null) => {
+    setSelectedClipId(clipId);
+    if (clipId) {
+      const clip = generatedClips.find(c => c.id === clipId);
+      if (clip) {
+        setCropPosition(clip.cropPosition);
+      }
+    }
+  }, [generatedClips]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!cropRegion || generatedClips.length > 0) return;
+    if (!cropRegion || !videoFile) return;
+
+    // Allow dragging when a clip is selected
+    if (!selectedClipId) return;
+
     const rect = canvasRef.current!.getBoundingClientRect();
     setIsDragging(true);
     setDragStart({ x: (e.clientX - rect.left) * cropRegion.width / rect.width, y: (e.clientY - rect.top) * cropRegion.height / rect.height });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !cropRegion || !videoFile) return;
+    if (!isDragging || !cropRegion || !videoFile || !selectedClipId) return;
     const rect = canvasRef.current!.getBoundingClientRect();
     const currentX = (e.clientX - rect.left) * cropRegion.width / rect.width;
     const currentY = (e.clientY - rect.top) * cropRegion.height / rect.height;
     const newX = Math.max(0, Math.min(cropPosition.x + currentX - dragStart.x, videoFile.width - cropRegion.width));
     const newY = Math.max(0, Math.min(cropPosition.y + currentY - dragStart.y, videoFile.height - cropRegion.height));
+
+    // Update selected clip's cropPosition
+    setGeneratedClips(prev => prev.map(clip =>
+      clip.id === selectedClipId ? { ...clip, cropPosition: { x: newX, y: newY } } : clip
+    ));
     setCropPosition({ x: newX, y: newY });
     setDragStart({ x: currentX, y: currentY });
   };
 
   const handleMouseUp = () => setIsDragging(false);
+
+  // Exit edit mode (deselect clip) when pressing Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedClipId) {
+        setSelectedClipId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedClipId]);
+
+  // Handle wheel for horizontal pan when editing
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (!selectedClipId || !cropRegion || !videoFile) return;
+    e.preventDefault();
+
+    // Get current clip
+    const currentClip = generatedClips.find(c => c.id === selectedClipId);
+    if (!currentClip) return;
+
+    // Scroll wheel adjusts horizontal position (like panning left/right)
+    const panAmount = e.deltaY > 0 ? 20 : -20;
+    const newX = Math.max(0, Math.min(
+      currentClip.cropPosition.x + panAmount,
+      videoFile.width - cropRegion.width
+    ));
+
+    setGeneratedClips(prev => prev.map(clip =>
+      clip.id === selectedClipId
+        ? { ...clip, cropPosition: { x: newX, y: clip.cropPosition.y } }
+        : clip
+    ));
+    setCropPosition({ x: newX, y: currentClip.cropPosition.y });
+  }, [selectedClipId, cropRegion, videoFile, generatedClips]);
 
   if (!videoFile) return null;
 
@@ -438,11 +613,12 @@ export function VideoEditor() {
         />
         <canvas
           ref={canvasRef}
-          className={`h-full w-auto max-w-none ${generatedClips.length === 0 ? 'cursor-move' : 'cursor-default'}`}
+          className={`h-full w-auto max-w-none ${selectedClipId ? 'cursor-move' : 'cursor-default'}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
         />
 
         {/* Play Controls */}
@@ -504,81 +680,57 @@ export function VideoEditor() {
 
         {/* Current Clip Indicator */}
         {generatedClips.length > 0 && (
-          <div className="absolute bottom-4 right-4 px-3 py-1 bg-blue-500/70 text-white text-sm rounded-full">
-            {(() => {
-              const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
-              if (currentClip) {
-                const index = generatedClips.findIndex(c => c.id === currentClip.id);
-                return `Clip ${index + 1}/${generatedClips.length}${currentClip.useFullFrame ? ' (Full frame)' : ''}`;
-              }
-              return "";
-            })()}
+          <div className="absolute bottom-4 right-4 flex items-center gap-2">
+            {selectedClipId && (
+              <div className="px-3 py-1 bg-orange-500/90 text-white text-sm rounded-full flex items-center gap-2">
+                <span>Editing</span>
+                <button
+                  onClick={() => setSelectedClipId(null)}
+                  className="hover:bg-white/20 rounded px-1"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+            <div className="px-3 py-1 bg-blue-500/70 text-white text-sm rounded-full">
+              {(() => {
+                const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
+                if (currentClip) {
+                  const index = generatedClips.findIndex(c => c.id === currentClip.id);
+                  return `Clip ${index + 1}/${generatedClips.length}${currentClip.useFullFrame ? ' (Full frame)' : ''}`;
+                }
+                return "";
+              })()}
+            </div>
           </div>
         )}
       </div>
 
 
-      {/* Timeline */}
-      {generatedClips.length > 0 ? (
-        <TimelineEditor
-          clips={generatedClips}
-          duration={videoFile.duration}
-          selectedClipId={selectedClipId}
-          currentTime={currentTime}
-          onClipSelect={setSelectedClipId}
-          onClipResize={(id, newStart, newEnd) =>
-            setGeneratedClips(prev => prev.map(clip =>
-              clip.id === id ? { ...clip, startTime: newStart, endTime: newEnd } : clip
-            ))
+      {/* Timeline - Always show */}
+      <TimelineEditor
+        clips={generatedClips}
+        duration={videoFile.duration}
+        selectedClipId={selectedClipId}
+        currentTime={currentTime}
+        onClipSelect={handleClipSelect}
+        onClipResize={(id, newStart, newEnd) =>
+          setGeneratedClips(prev => prev.map(clip =>
+            clip.id === id ? { ...clip, startTime: newStart, endTime: newEnd } : clip
+          ))
+        }
+        onClipDelete={(id) => {
+          setGeneratedClips(prev => prev.filter(c => c.id !== id));
+          if (selectedClipId === id) {
+            setSelectedClipId(null);
           }
-          onClipDelete={(id) => setGeneratedClips(prev => prev.filter(c => c.id !== id))}
-          onSeek={(time) => {
-            setCurrentTime(time);
-            if (videoRef.current) videoRef.current.currentTime = time;
-          }}
-        />
-      ) : (
-        <div className="relative rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
-          <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-            <span>{formatTime(0)}</span>
-            <span>{formatTime(videoFile.duration)}</span>
-          </div>
-          <div className="relative">
-            <div className="flex gap-1 overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800">
-              {timelineFrames.length > 0 ? (
-                timelineFrames.map((frame, idx) => (
-                  <div key={idx} className="flex-1 min-w-0">
-                    <img src={frame} alt={`frame-${idx}`} className="h-16 w-full object-cover" />
-                  </div>
-                ))
-              ) : (
-                <div className="h-16 w-full flex items-center justify-center text-xs text-neutral-400">
-                  {isAnalyzing ? "Analyzing video to generate clips..." : isGeneratingTimeline ? "Generating timeline..." : "Timeline will appear here"}
-                </div>
-              )}
-            </div>
-            <div
-              className="absolute top-0 bottom-0 w-0.5 bg-[#C2F159]"
-              style={{ left: `${(currentTime / videoFile.duration) * 100}%` }}
-            >
-              <div className="absolute -top-2 -left-2 w-4 h-4 bg-[#C2F159] rotate-45 rounded-sm" />
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={videoFile.duration}
-              step={0.01}
-              value={currentTime}
-              onChange={(e) => {
-                const time = parseFloat(e.target.value);
-                setCurrentTime(time);
-                if (videoRef.current) videoRef.current.currentTime = time;
-              }}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-          </div>
-        </div>
-      )}
+        }}
+        onClipsChange={setGeneratedClips}
+        onSeek={(time) => {
+          setCurrentTime(time);
+          if (videoRef.current) videoRef.current.currentTime = time;
+        }}
+      />
     </div>
   );
 }
@@ -587,15 +739,4 @@ function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-}
-
-async function generateTimelineFrames(videoUrl: string, duration: number, frameCount: number): Promise<string[]> {
-  const frames: string[] = [];
-  const safeDuration = Math.max(duration, 0.1);
-  for (let i = 0; i < frameCount; i++) {
-    const time = (safeDuration / frameCount) * i;
-    const frame = await extractFrame(videoUrl, time);
-    frames.push(frame);
-  }
-  return frames;
 }
