@@ -479,7 +479,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
           <div className="absolute -top-2 -left-2 w-4 h-4 bg-[#C2F159] rotate-45 rounded-sm" />
         </div>
 
-        {/* Seek input */}
+        {/* Seek input - placed below clips to not block interactions */}
         <input
           type="range"
           min={0}
@@ -492,7 +492,8 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
               onSeek(time);
             }
           }}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-0"
+          style={{ pointerEvents: 'auto' }}
         />
       </div>
 

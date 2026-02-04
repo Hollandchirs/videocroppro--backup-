@@ -366,6 +366,7 @@ function createClip(
       y: cropPosition.y + cropHeight / 2,
     },
     useFullFrame,
+    cropScale: 1.0,
   };
 }
 
@@ -392,6 +393,7 @@ function createSingleClip(
       y: videoHeight / 2,
     },
     useFullFrame: false,
+    cropScale: 1.0,
   };
 }
 

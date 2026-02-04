@@ -27,6 +27,14 @@ export function VideoEditor() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 });
+  // Touch gesture state for pan and zoom
+  const touchStateRef = useRef({
+    isPinching: false,
+    initialDistance: 0,
+    initialCenter: { x: 0, y: 0 },
+    initialCropPos: { x: 0, y: 0 },
+    initialCropScale: 1,
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [generatedClips, setGeneratedClips] = useState<VideoClip[]>([]);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
@@ -74,6 +82,7 @@ export function VideoEditor() {
         cropPosition: { x: cropRegion.x, y: cropRegion.y },
         speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
         useFullFrame: false,
+        cropScale: 1.0,
       };
       setGeneratedClips([defaultClip]);
     }
@@ -236,6 +245,14 @@ export function VideoEditor() {
     if (isAnalyzing && currentAnalyzingRatio !== projectKey) {
       cancelCurrentAnalysis();
       analysisPendingRef.current = ratio;
+      // After cancellation, wait for state to update then trigger new analysis
+      setTimeout(() => {
+        if (analysisPendingRef.current) {
+          const pendingRatio = analysisPendingRef.current;
+          analysisPendingRef.current = null;
+          triggerAnalysis(pendingRatio, strategy);
+        }
+      }, 100);
       return;
     }
 
@@ -271,6 +288,7 @@ export function VideoEditor() {
           cropPosition: centerPos,
           speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
           useFullFrame: false,
+          cropScale: 1.0,
         }];
 
         const project: EditProject = {
@@ -289,17 +307,19 @@ export function VideoEditor() {
         setCurrentAnalyzingRatio(null);
         setAnalysisProgress(1);
 
+        // Handle pending analysis after completion
         if (analysisPendingRef.current) {
           const pendingRatio = analysisPendingRef.current;
+          const pendingStrategy = cropStrategy;
           analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
         }
       }
       return;
     }
 
     // Smart Crop mode
-    // 16:9 - only black bar detection, no subject analysis
+    // 16:9 - only black bar detection, no subject analysis (regardless of source)
     if (ratio === "16:9") {
       setIsAnalyzing(true);
       setCurrentAnalyzingRatio(projectKey);
@@ -308,13 +328,17 @@ export function VideoEditor() {
 
       try {
         const blackBarResult = await runBlackBarDetection();
+        const currentSafeArea = blackBarResult?.safeArea || {
+          x: 0, y: 0, width: videoFile.width, height: videoFile.height
+        };
         const clips: VideoClip[] = [{
           id: `clip_${Date.now()}`,
           startTime: 0,
           endTime: videoFile.duration,
-          cropPosition: { x: blackBarResult?.left || 0, y: blackBarResult?.top || 0 },
+          cropPosition: { x: currentSafeArea.x, y: currentSafeArea.y },
           speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
           useFullFrame: false,
+          cropScale: 1.0,
         }];
 
         const project: EditProject = {
@@ -332,10 +356,12 @@ export function VideoEditor() {
         setCurrentAnalyzingRatio(null);
         setAnalysisProgress(1);
 
+        // Handle pending analysis after completion
         if (analysisPendingRef.current) {
           const pendingRatio = analysisPendingRef.current;
+          const pendingStrategy = cropStrategy;
           analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
         }
       }
       return;
@@ -354,10 +380,12 @@ export function VideoEditor() {
       const project = await runHardCutAnalysis(ratio, abortController.signal);
 
       if (!project || abortController.signal.aborted) {
+        // Analysis was aborted, handle pending
         if (analysisPendingRef.current) {
           const pendingRatio = analysisPendingRef.current;
+          const pendingStrategy = cropStrategy;
           analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
+          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
         }
         return;
       }
@@ -372,16 +400,18 @@ export function VideoEditor() {
       if (project.clips.length > 0) {
         setCropPosition(project.clips[0].cropPosition);
       }
+
+      // Handle pending analysis after successful completion
+      if (analysisPendingRef.current) {
+        const pendingRatio = analysisPendingRef.current;
+        const pendingStrategy = cropStrategy;
+        analysisPendingRef.current = null;
+        setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
+      }
     } finally {
       setIsAnalyzing(false);
       setCurrentAnalyzingRatio(null);
       setAnalysisAbortController(null);
-
-      if (analysisPendingRef.current) {
-        const pendingRatio = analysisPendingRef.current;
-        analysisPendingRef.current = null;
-        setTimeout(() => triggerAnalysis(pendingRatio, strategy), 50);
-      }
     }
   }, [
     videoFile, cropRegion, cropStrategy, isAnalyzing, currentAnalyzingRatio,
@@ -427,6 +457,7 @@ export function VideoEditor() {
     if (!ctx) return;
 
     let currentCropPos = cropPosition;
+    let currentScale = 1.0;
     let isLetterbox = false;
 
     if (generatedClips.length > 0) {
@@ -435,8 +466,10 @@ export function VideoEditor() {
         // When editing selected clip, use the live cropPosition for immediate feedback
         if (selectedClipId && currentClip.id === selectedClipId) {
           currentCropPos = cropPosition;
+          currentScale = currentClip.cropScale || 1.0;
         } else {
           currentCropPos = currentClip.cropPosition;
+          currentScale = currentClip.cropScale || 1.0;
         }
         isLetterbox = currentClip.useFullFrame || false;
       }
@@ -466,7 +499,23 @@ export function VideoEditor() {
         }
         ctx.drawImage(video, drawX, drawY, drawWidth, drawHeight);
       } else {
-        ctx.drawImage(video, -currentCropPos.x, -currentCropPos.y, videoFile.width, videoFile.height);
+        // Apply scale for zoom effect - draw a larger area from the source video
+        if (currentScale !== 1.0) {
+          const scaledWidth = cropRegion.width / currentScale;
+          const scaledHeight = cropRegion.height / currentScale;
+          const offsetX = (cropRegion.width - scaledWidth) / 2;
+          const offsetY = (cropRegion.height - scaledHeight) / 2;
+          // Draw from the video centered on the crop position but scaled
+          ctx.drawImage(
+            video,
+            currentCropPos.x + offsetX, currentCropPos.y + offsetY,
+            scaledWidth, scaledHeight,
+            0, 0,
+            cropRegion.width, cropRegion.height
+          );
+        } else {
+          ctx.drawImage(video, -currentCropPos.x, -currentCropPos.y, videoFile.width, videoFile.height);
+        }
       }
       ctx.strokeStyle = "rgba(194, 241, 89, 0.7)";
       ctx.lineWidth = 2;
@@ -527,6 +576,14 @@ export function VideoEditor() {
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!cropRegion || !videoFile) return;
 
+    // If no clip selected, auto-select the clip at current time
+    if (!selectedClipId && generatedClips.length > 0) {
+      const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
+      if (currentClip) {
+        handleClipSelect(currentClip.id);
+      }
+    }
+
     // Allow dragging when a clip is selected
     if (!selectedClipId) return;
 
@@ -553,6 +610,122 @@ export function VideoEditor() {
 
   const handleMouseUp = () => setIsDragging(false);
 
+  // Touch gesture handlers for pan and zoom
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const getTouchCenter = (touches: React.TouchList) => {
+    if (touches.length < 2) return { x: 0, y: 0 };
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!cropRegion || !videoFile) return;
+
+    // If no clip selected, auto-select the clip at current time
+    let currentClip = null;
+    if (!selectedClipId && generatedClips.length > 0) {
+      const clipAtTime = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
+      if (clipAtTime) {
+        handleClipSelect(clipAtTime.id);
+        currentClip = clipAtTime;
+      }
+    } else {
+      currentClip = generatedClips.find(c => c.id === selectedClipId);
+    }
+
+    if (!currentClip) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+
+    if (e.touches.length === 2) {
+      // Pinch gesture started - store initial state for zoom
+      e.preventDefault(); // Prevent default zoom behavior
+      const distance = getTouchDistance(e.touches);
+      const center = getTouchCenter(e.touches);
+      touchStateRef.current = {
+        isPinching: true,
+        initialDistance: distance,
+        initialCenter: center,
+        initialCropPos: { ...currentClip.cropPosition },
+        initialCropScale: currentClip.cropScale || 1.0,
+      };
+    } else if (e.touches.length === 1) {
+      // Single touch - start pan gesture
+      setIsDragging(true);
+      const touch = e.touches[0];
+      setDragStart({
+        x: (touch.clientX - rect.left) * cropRegion.width / rect.width,
+        y: (touch.clientY - rect.top) * cropRegion.height / rect.height,
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!cropRegion || !videoFile || !selectedClipId) return;
+    e.preventDefault(); // Prevent scrolling while interacting
+
+    const currentClip = generatedClips.find(c => c.id === selectedClipId);
+    if (!currentClip) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+
+    if (e.touches.length === 2 && touchStateRef.current.isPinching) {
+      // Pinch to zoom - calculate new scale
+      const currentDistance = getTouchDistance(e.touches);
+      const scaleRatio = currentDistance / touchStateRef.current.initialDistance;
+      const newScale = Math.max(1.0, Math.min(5.0, touchStateRef.current.initialCropScale * scaleRatio));
+
+      // Apply the new scale to the selected clip
+      setGeneratedClips(prev => prev.map(clip =>
+        clip.id === selectedClipId ? { ...clip, cropScale: newScale } : clip
+      ));
+    } else if (e.touches.length === 1 && isDragging) {
+      // Pan with single finger
+      const touch = e.touches[0];
+      const currentX = (touch.clientX - rect.left) * cropRegion.width / rect.width;
+      const currentY = (touch.clientY - rect.top) * cropRegion.height / rect.height;
+
+      const clipScale = currentClip.cropScale || 1.0;
+      // When zoomed in, allow panning beyond the normal boundaries
+      const maxOffsetX = (cropRegion.width * (clipScale - 1)) / 2;
+      const maxOffsetY = (cropRegion.height * (clipScale - 1)) / 2;
+
+      const newX = Math.max(-maxOffsetX, Math.min(
+        currentClip.cropPosition.x + (currentX - dragStart.x),
+        videoFile.width - cropRegion.width + maxOffsetX
+      ));
+      const newY = Math.max(-maxOffsetY, Math.min(
+        currentClip.cropPosition.y + (currentY - dragStart.y),
+        videoFile.height - cropRegion.height + maxOffsetY
+      ));
+
+      setGeneratedClips(prev => prev.map(clip =>
+        clip.id === selectedClipId ? { ...clip, cropPosition: { x: newX, y: newY } } : clip
+      ));
+      setCropPosition({ x: newX, y: newY });
+      setDragStart({ x: currentX, y: currentY });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+      touchStateRef.current.isPinching = false;
+    }
+  };
+
   // Exit edit mode (deselect clip) when pressing Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -564,29 +737,45 @@ export function VideoEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedClipId]);
 
-  // Handle wheel for horizontal pan when editing
+  // Handle wheel for pan when editing (both X and Y directions)
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!selectedClipId || !cropRegion || !videoFile) return;
+    if (!cropRegion || !videoFile) return;
+
+    // Get current clip - auto-select if none selected
+    let currentClip = null;
+    let clipId = selectedClipId;
+    if (!clipId && generatedClips.length > 0) {
+      const clipAtTime = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
+      if (clipAtTime) {
+        handleClipSelect(clipAtTime.id);
+        currentClip = clipAtTime;
+        clipId = clipAtTime.id;
+      }
+    } else {
+      currentClip = generatedClips.find(c => c.id === clipId);
+    }
+
+    if (!currentClip || !clipId) return;
     e.preventDefault();
 
-    // Get current clip
-    const currentClip = generatedClips.find(c => c.id === selectedClipId);
-    if (!currentClip) return;
-
-    // Scroll wheel adjusts horizontal position (like panning left/right)
-    const panAmount = e.deltaY > 0 ? 20 : -20;
+    // Support both vertical (deltaY) and horizontal (deltaX) scrolling
+    const panStep = 20;
     const newX = Math.max(0, Math.min(
-      currentClip.cropPosition.x + panAmount,
+      currentClip.cropPosition.x + (e.deltaX > 0 ? panStep : e.deltaX < 0 ? -panStep : 0),
       videoFile.width - cropRegion.width
+    ));
+    const newY = Math.max(0, Math.min(
+      currentClip.cropPosition.y + (e.deltaY > 0 ? panStep : e.deltaY < 0 ? -panStep : 0),
+      videoFile.height - cropRegion.height
     ));
 
     setGeneratedClips(prev => prev.map(clip =>
-      clip.id === selectedClipId
-        ? { ...clip, cropPosition: { x: newX, y: clip.cropPosition.y } }
+      clip.id === clipId
+        ? { ...clip, cropPosition: { x: newX, y: newY } }
         : clip
     ));
-    setCropPosition({ x: newX, y: currentClip.cropPosition.y });
-  }, [selectedClipId, cropRegion, videoFile, generatedClips]);
+    setCropPosition({ x: newX, y: newY });
+  }, [selectedClipId, cropRegion, videoFile, generatedClips, currentTime, handleClipSelect]);
 
   if (!videoFile) return null;
 
@@ -613,12 +802,15 @@ export function VideoEditor() {
         />
         <canvas
           ref={canvasRef}
-          className={`h-full w-auto max-w-none ${selectedClipId ? 'cursor-move' : 'cursor-default'}`}
+          className={`h-full w-auto max-w-none ${selectedClipId ? 'cursor-move touch-none' : 'cursor-pointer'}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         />
 
         {/* Play Controls */}
@@ -678,32 +870,6 @@ export function VideoEditor() {
           )}
         </div>
 
-        {/* Current Clip Indicator */}
-        {generatedClips.length > 0 && (
-          <div className="absolute bottom-4 right-4 flex items-center gap-2">
-            {selectedClipId && (
-              <div className="px-3 py-1 bg-orange-500/90 text-white text-sm rounded-full flex items-center gap-2">
-                <span>Editing</span>
-                <button
-                  onClick={() => setSelectedClipId(null)}
-                  className="hover:bg-white/20 rounded px-1"
-                >
-                  Done
-                </button>
-              </div>
-            )}
-            <div className="px-3 py-1 bg-blue-500/70 text-white text-sm rounded-full">
-              {(() => {
-                const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
-                if (currentClip) {
-                  const index = generatedClips.findIndex(c => c.id === currentClip.id);
-                  return `Clip ${index + 1}/${generatedClips.length}${currentClip.useFullFrame ? ' (Full frame)' : ''}`;
-                }
-                return "";
-              })()}
-            </div>
-          </div>
-        )}
       </div>
 
 

@@ -79,6 +79,7 @@ export interface VideoClip {
   cropPosition: { x: number; y: number };
   speakerCenter: { x: number; y: number };
   useFullFrame?: boolean; // If true, use 9:16 full frame for two speakers
+  cropScale?: number; // Scale factor for custom zoom (1.0 = no zoom, >1.0 = zoomed in)
 }
 
 // Edit project
