@@ -114,9 +114,11 @@ export function VideoEditor() {
     ratio: string,
     abortSignal: AbortSignal
   ): Promise<EditProject | null> => {
-    if (!videoFile || !videoRef.current || !cropRegion) return null;
+    if (!videoFile || !videoRef.current) return null;
 
     const video = videoRef.current;
+
+    // Use safeArea if available, otherwise detect black bars
     let currentSafeArea = safeArea;
     if (!currentSafeArea) {
       const blackBarResult = await runBlackBarDetection();
@@ -124,6 +126,13 @@ export function VideoEditor() {
         x: 0, y: 0, width: videoFile.width, height: videoFile.height,
       };
     }
+
+    // Calculate cropRegion based on safeArea (not original video size)
+    const effectiveCropRegion = calculateCropRegion(
+      currentSafeArea.width,
+      currentSafeArea.height,
+      ratio
+    );
 
     if (video.readyState < 3) {
       await new Promise<void>((resolve) => {
@@ -167,7 +176,7 @@ export function VideoEditor() {
         const { strategy, cropPosition: frameCropPos } = analyzeFrameStrategy(
           adjustedFaces, speakingIndex,
           currentSafeArea!.width, currentSafeArea!.height,
-          cropRegion.width, cropRegion.height
+          effectiveCropRegion.width, effectiveCropRegion.height
         );
 
         frameAnalyses.push({
@@ -190,8 +199,8 @@ export function VideoEditor() {
     if (abortSignal.aborted) return null;
 
     let clips = generateHardCutClipsFromAnalysis(
-      frameAnalyses, videoFile.width, videoFile.height,
-      cropRegion.width, cropRegion.height, videoFile.duration
+      frameAnalyses, currentSafeArea.width, currentSafeArea.height,
+      effectiveCropRegion.width, effectiveCropRegion.height, videoFile.duration
     );
     clips = mergeSimilarClips(clips, 50);
 
@@ -201,7 +210,7 @@ export function VideoEditor() {
 
     video.currentTime = 0;
     return project;
-  }, [videoFile, cropRegion, safeArea, blackBars, runBlackBarDetection, setAnalysisProgress]);
+  }, [videoFile, safeArea, blackBars, runBlackBarDetection, setAnalysisProgress]);
 
   // Generate center crop position (after black bar removal)
   const getCenterCropPosition = useCallback((
@@ -289,17 +298,32 @@ export function VideoEditor() {
           x: 0, y: 0, width: videoFile.width, height: videoFile.height
         };
 
-        const centerPos = getCenterCropPosition(
-          currentSafeArea.width, currentSafeArea.height,
-          cropRegion.width, cropRegion.height,
-          currentSafeArea.x, currentSafeArea.y
+        // Recalculate cropRegion based on safeArea (excluding black bars)
+        const newCropRegion = calculateCropRegion(
+          currentSafeArea.width,
+          currentSafeArea.height,
+          ratio
         );
+
+        // Adjust crop position to be relative to original video (add safeArea offset)
+        const adjustedCropPos = {
+          x: currentSafeArea.x + newCropRegion.x,
+          y: currentSafeArea.y + newCropRegion.y,
+        };
+
+        // Update cropRegion with adjusted values
+        const finalCropRegion = {
+          ...newCropRegion,
+          x: adjustedCropPos.x,
+          y: adjustedCropPos.y,
+        };
+        setCropRegion(finalCropRegion);
 
         const clips: VideoClip[] = [{
           id: `clip_${Date.now()}`,
           startTime: 0,
           endTime: videoFile.duration,
-          cropPosition: centerPos,
+          cropPosition: adjustedCropPos,
           speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
           useFullFrame: false,
           cropScale: 1.0,
@@ -315,7 +339,7 @@ export function VideoEditor() {
         addAnalyzedRatio(projectKey);
         setCurrentEditProject(project);
         setGeneratedClips(clips);
-        setCropPosition(centerPos);
+        setCropPosition(adjustedCropPos);
       } finally {
         setIsAnalyzing(false);
         setCurrentAnalyzingRatio(null);
@@ -360,11 +384,33 @@ export function VideoEditor() {
         const currentSafeArea = blackBarResult?.safeArea || {
           x: 0, y: 0, width: videoFile.width, height: videoFile.height
         };
+
+        // Recalculate cropRegion based on safeArea (excluding black bars)
+        const newCropRegion = calculateCropRegion(
+          currentSafeArea.width,
+          currentSafeArea.height,
+          ratio
+        );
+
+        // Adjust crop position to be relative to original video (add safeArea offset)
+        const adjustedCropPos = {
+          x: currentSafeArea.x + newCropRegion.x,
+          y: currentSafeArea.y + newCropRegion.y,
+        };
+
+        // Update cropRegion with adjusted values
+        const finalCropRegion = {
+          ...newCropRegion,
+          x: adjustedCropPos.x,
+          y: adjustedCropPos.y,
+        };
+        setCropRegion(finalCropRegion);
+
         const clips: VideoClip[] = [{
           id: `clip_${Date.now()}`,
           startTime: 0,
           endTime: videoFile.duration,
-          cropPosition: { x: currentSafeArea.x, y: currentSafeArea.y },
+          cropPosition: adjustedCropPos,
           speakerCenter: { x: videoFile.width / 2, y: videoFile.height / 2 },
           useFullFrame: false,
           cropScale: 1.0,
@@ -380,6 +426,7 @@ export function VideoEditor() {
         addAnalyzedRatio(projectKey);
         setCurrentEditProject(project);
         setGeneratedClips(clips);
+        setCropPosition(adjustedCropPos);
       } finally {
         setIsAnalyzing(false);
         setCurrentAnalyzingRatio(null);
@@ -406,7 +453,39 @@ export function VideoEditor() {
     setGeneratedClips([]);
 
     try {
-      await runBlackBarDetection();
+      // First detect black bars
+      const blackBarResult = await runBlackBarDetection();
+
+      if (abortController.signal.aborted) {
+        if (analysisPendingRef.current) {
+          const pendingRatio = analysisPendingRef.current;
+          const pendingStrategy = cropStrategy;
+          analysisPendingRef.current = null;
+          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
+        }
+        return;
+      }
+
+      const currentSafeArea = blackBarResult?.safeArea || {
+        x: 0, y: 0, width: videoFile.width, height: videoFile.height
+      };
+
+      // Recalculate cropRegion based on safeArea (excluding black bars)
+      const newCropRegion = calculateCropRegion(
+        currentSafeArea.width,
+        currentSafeArea.height,
+        ratio
+      );
+
+      // Update cropRegion with adjusted values
+      const finalCropRegion = {
+        ...newCropRegion,
+        x: currentSafeArea.x + newCropRegion.x,
+        y: currentSafeArea.y + newCropRegion.y,
+      };
+      setCropRegion(finalCropRegion);
+
+      // Now run the analysis with updated cropRegion
       const project = await runHardCutAnalysis(ratio, abortController.signal);
 
       if (!project || abortController.signal.aborted) {
@@ -453,10 +532,24 @@ export function VideoEditor() {
 
   useEffect(() => {
     if (videoFile && targetPlatform) {
-      const region = calculateCropRegion(videoFile.width, videoFile.height, targetPlatform.aspectRatio);
-      if (!cropRegion || cropRegion.width !== region.width || cropRegion.height !== region.height) {
-        setCropRegion(region);
-        setCropPosition({ x: region.x, y: region.y });
+      // Use safeArea dimensions if available (after black bar detection), otherwise use original video size
+      const effectiveWidth = safeArea ? safeArea.width : videoFile.width;
+      const effectiveHeight = safeArea ? safeArea.height : videoFile.height;
+      const offsetX = safeArea ? safeArea.x : 0;
+      const offsetY = safeArea ? safeArea.y : 0;
+
+      const region = calculateCropRegion(effectiveWidth, effectiveHeight, targetPlatform.aspectRatio);
+      // Adjust region position to account for safeArea offset
+      const adjustedRegion = {
+        ...region,
+        x: region.x + offsetX,
+        y: region.y + offsetY,
+      };
+
+      // Only update cropRegion if dimensions changed (ignore position changes to preserve user edits)
+      if (!cropRegion || cropRegion.width !== adjustedRegion.width || cropRegion.height !== adjustedRegion.height) {
+        setCropRegion(adjustedRegion);
+        setCropPosition({ x: adjustedRegion.x, y: adjustedRegion.y });
       }
 
       const newRatio = targetPlatform.aspectRatio;
@@ -469,7 +562,7 @@ export function VideoEditor() {
         setTimeout(() => triggerAnalysis(newRatio, cropStrategy), 100);
       }
     }
-  }, [videoFile, targetPlatform, cropStrategy, setCropRegion, cropRegion, triggerAnalysis]);
+  }, [videoFile, targetPlatform, cropStrategy, setCropRegion, cropRegion, triggerAnalysis, safeArea]);
 
   const prevCropPositionRef = useRef(cropPosition);
   useEffect(() => {
@@ -530,10 +623,17 @@ export function VideoEditor() {
         ctx.drawImage(video, drawX, drawY, drawWidth, drawHeight);
       } else {
         // Ensure crop position stays within valid bounds to prevent blank areas
-        const maxX = Math.max(0, videoFile.width - cropRegion.width);
-        const maxY = Math.max(0, videoFile.height - cropRegion.height);
-        const safeX = Math.max(0, Math.min(currentCropPos.x, maxX));
-        const safeY = Math.max(0, Math.min(currentCropPos.y, maxY));
+        // Use safeArea boundaries if available to prevent exposing black bars
+        const minX = safeArea ? safeArea.x : 0;
+        const minY = safeArea ? safeArea.y : 0;
+        const maxX = safeArea
+          ? Math.max(minX, safeArea.x + safeArea.width - cropRegion.width)
+          : Math.max(0, videoFile.width - cropRegion.width);
+        const maxY = safeArea
+          ? Math.max(minY, safeArea.y + safeArea.height - cropRegion.height)
+          : Math.max(0, videoFile.height - cropRegion.height);
+        const safeX = Math.max(minX, Math.min(currentCropPos.x, maxX));
+        const safeY = Math.max(minY, Math.min(currentCropPos.y, maxY));
 
         // Apply scale for zoom effect
         if (currentScale !== 1.0) {
@@ -567,7 +667,7 @@ export function VideoEditor() {
       canvas.height = videoFile.height;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
-  }, [videoFile, cropRegion, cropPosition, currentTime, generatedClips, selectedClipId]);
+  }, [videoFile, cropRegion, cropPosition, currentTime, generatedClips, selectedClipId, safeArea]);
 
   const drawFrameRef = useRef(drawFrame);
   useEffect(() => {
