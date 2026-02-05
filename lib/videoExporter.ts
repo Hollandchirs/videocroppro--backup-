@@ -1,6 +1,49 @@
 import { CropRegion, CropStrategy, VideoClip } from "./types";
 
 /**
+ * Simple toBlobURL implementation using fetch
+ */
+async function toBlobURL(url: string, _type: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Get FFmpeg class - loads from CDN dynamically
+ * Uses a script-based approach to avoid webpack module resolution issues
+ */
+async function getFFmpeg(): Promise<any> {
+  // Check if already loaded in window
+  if ((window as any).FFmpeg) {
+    return (window as any).FFmpeg;
+  }
+
+  // Load FFmpeg from CDN via script tag
+  const script = document.createElement("script");
+  script.type = "module";
+  script.textContent = `
+    import { FFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
+    window.FFmpeg = FFmpeg;
+  `;
+
+  return new Promise((resolve, reject) => {
+    script.onload = () => {
+      // Give it a moment to register
+      setTimeout(() => {
+        if ((window as any).FFmpeg) {
+          resolve((window as any).FFmpeg);
+        } else {
+          reject(new Error("Failed to load FFmpeg"));
+        }
+      }, 100);
+    };
+    script.onerror = () => reject(new Error("Failed to load FFmpeg script"));
+    document.head.appendChild(script);
+  });
+}
+
+/**
  * Export video with crop region (crop strategy)
  * Preserves original video quality
  */
@@ -12,7 +55,7 @@ export async function exportVideo(
   strategy: CropStrategy = "smart-crop",
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const { FFmpeg, fetchFile, toBlobURL } = await importFFmpegModules();
+  const FFmpeg = await getFFmpeg();
 
   // Create a new FFmpeg instance each time
   const ffmpeg = new FFmpeg();
@@ -74,7 +117,7 @@ export async function exportVideo(
 
   // Set up progress callback
   if (onProgress) {
-    ffmpeg.on("progress", ({ progress }) => {
+    ffmpeg.on("progress", ({ progress }: { progress: number }) => {
       onProgress(Math.round(progress * 100));
     });
   }
@@ -176,7 +219,7 @@ export async function exportVideoWithClips(
   strategy: CropStrategy = "smart-crop",
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const { FFmpeg, fetchFile, toBlobURL } = await importFFmpegModules();
+  const FFmpeg = await getFFmpeg();
 
   // Create a new FFmpeg instance each time
   const ffmpeg = new FFmpeg();
@@ -275,7 +318,7 @@ export async function exportVideoWithClips(
 
   // Set up progress callback
   if (onProgress) {
-    ffmpeg.on("progress", ({ progress }) => {
+    ffmpeg.on("progress", ({ progress }: { progress: number }) => {
       onProgress(Math.round(progress * 100));
     });
   }
@@ -342,20 +385,6 @@ function generateSegmentFilter(
   filter += `${segmentList}concat=n=${effectiveClips.length}:v=1[out]`;
 
   return filter;
-}
-
-/**
- * Helper function to dynamically import FFmpeg modules
- */
-async function importFFmpegModules() {
-  const ffmpegModule = await import('@ffmpeg/ffmpeg');
-  const utilModule = await import('@ffmpeg/util');
-
-  return {
-    FFmpeg: ffmpegModule.FFmpeg,
-    fetchFile: utilModule.fetchFile,
-    toBlobURL: utilModule.toBlobURL,
-  };
 }
 
 /**

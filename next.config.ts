@@ -32,11 +32,9 @@ const nextConfig: NextConfig = {
       fs: false,
     };
 
-    // Only exclude @ffmpeg packages on server-side bundling
-    // Client-side needs to load them dynamically
-    if (isServer) {
-      config.externals = [...(config.externals || []), '@ffmpeg/ffmpeg', '@ffmpeg/util'];
-    }
+    // Exclude @ffmpeg packages from both client and server bundling
+    // They're loaded from CDN at runtime
+    config.externals = [...(config.externals || []), '@ffmpeg/ffmpeg', '@ffmpeg/util'];
 
     // Ignore warnings for dynamic imports
     config.module = config.module || {};
