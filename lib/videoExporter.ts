@@ -47,6 +47,13 @@ function getLocalURL(filename: string): string {
 }
 
 /**
+ * Get blob URL for core/wasm files (worker needs local path)
+ */
+async function getBlobURLForFile(filename: string): Promise<string> {
+  return await toBlobURL(getLocalURL(filename), "application/javascript");
+}
+
+/**
  * Export video with crop region (crop strategy)
  * Preserves original video quality
  */
@@ -64,11 +71,11 @@ export async function exportVideo(
   const ffmpeg = new FFmpeg();
 
   // Load FFmpeg from local files (served from public directory)
-  // Using worker-bundle.js which has all dependencies inlined
+  // Note: workerURL needs to be a regular URL, not blob URL
   await ffmpeg.load({
-    coreURL: await toBlobURL(getLocalURL("ffmpeg-core.js"), "text/javascript"),
-    wasmURL: await toBlobURL(getLocalURL("ffmpeg-core.wasm"), "application/wasm"),
-    workerURL: await toBlobURL(getLocalURL("worker-bundle.js"), "text/javascript"),
+    coreURL: await getBlobURLForFile("ffmpeg-core.js"),
+    wasmURL: await getBlobURLForFile("ffmpeg-core.wasm"),
+    workerURL: getLocalURL("worker-bundle.js"),  // Worker needs direct path, not blob
   });
 
   // Write input file - read as Uint8Array to avoid blob URL issues
@@ -231,11 +238,11 @@ export async function exportVideoWithClips(
   const ffmpeg = new FFmpeg();
 
   // Load FFmpeg from local files (served from public directory)
-  // Using worker-bundle.js which has all dependencies inlined
+  // Note: workerURL needs to be a regular URL, not blob URL
   await ffmpeg.load({
-    coreURL: await toBlobURL(getLocalURL("ffmpeg-core.js"), "text/javascript"),
-    wasmURL: await toBlobURL(getLocalURL("ffmpeg-core.wasm"), "application/wasm"),
-    workerURL: await toBlobURL(getLocalURL("worker-bundle.js"), "text/javascript"),
+    coreURL: await getBlobURLForFile("ffmpeg-core.js"),
+    wasmURL: await getBlobURLForFile("ffmpeg-core.wasm"),
+    workerURL: getLocalURL("worker-bundle.js"),  // Worker needs direct path, not blob
   });
 
   // Write input file - read as Uint8Array to avoid blob URL issues

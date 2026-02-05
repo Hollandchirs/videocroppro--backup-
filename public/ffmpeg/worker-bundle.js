@@ -6,6 +6,13 @@
 
 // const.js content
 const CORE_URL = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm/ffmpeg-core.js";
+const FFMessageType = {
+    LOAD: "load",
+    EXEC: "exec",
+    WRITE_FILE: "writeFile",
+    READ_FILE: "readFile",
+    DELETE_FILE: "deleteFile",
+};
 
 // errors.js content
 const ERROR_UNKNOWN_MESSAGE_TYPE = "Unknown message type";
@@ -34,13 +41,13 @@ const load = async ({ coreURL: _coreURL, wasmURL: _wasmURL, workerURL: _workerUR
     }
     const coreURL = _coreURL;
     const wasmURL = _wasmURL ? _wasmURL : _coreURL.replace(/.js$/g, ".wasm");
-    const workerURL = _workerURL
+    const workerURL_param = _workerURL
         ? _workerURL
         : _coreURL.replace(/.js$/g, ".worker.js");
     ffmpeg = await self.createFFmpegCore({
         coreURL,
         wasmURL,
-        workerURL,
+        workerURL: workerURL_param,
     });
     return first;
 };
@@ -62,7 +69,7 @@ self.addEventListener("message", async ({ data: { id, type, data } }) => {
     try {
         if (type === FFMessageType.LOAD)
             await load(data);
-        else if (type === FFMessageType EXEC)
+        else if (type === FFMessageType.EXEC)
             await exec(data);
         else if (type === FFMessageType.WRITE_FILE)
             ffmpeg.writeFile(data.fileName, data.data);
