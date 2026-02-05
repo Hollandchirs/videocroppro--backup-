@@ -32,15 +32,20 @@ const nextConfig: NextConfig = {
       fs: false,
     };
 
-    // Exclude @ffmpeg packages from both client and server bundling
-    // They're loaded from CDN at runtime
+    // Exclude @ffmpeg packages from bundling - loaded from CDN at runtime
     config.externals = [...(config.externals || []), '@ffmpeg/ffmpeg', '@ffmpeg/util'];
 
-    // Ignore warnings for dynamic imports
+    // Allow webpackIgnore for dynamic imports from CDN
     config.module = config.module || {};
     (config.module as any).unknownContextCritical = false;
     (config.module as any).unknownContextRegExp = /^\.\/.*$/;
     (config.module as any).exprContextCritical = false;
+
+    // Ignore https:// imports in dynamic imports
+    config.ignoreWarnings = [
+      (warning: any) =>
+        warning.message.includes("Critical dependency: the request of a dependency is an expression"),
+    ];
 
     return config;
   },

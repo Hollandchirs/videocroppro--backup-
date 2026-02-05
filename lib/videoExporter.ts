@@ -9,38 +9,35 @@ async function toBlobURL(url: string, _type: string): Promise<string> {
   return URL.createObjectURL(blob);
 }
 
+// Cache FFmpeg class after loading
+let FFmpegClass: any = null;
+let ffmpegLoadPromise: Promise<any> | null = null;
+
 /**
- * Get FFmpeg class - loads from CDN dynamically
- * Uses a script-based approach to avoid webpack module resolution issues
+ * Load FFmpeg from CDN - only loads once
+ * Direct URL import to bypass webpack bundling
  */
 async function getFFmpeg(): Promise<any> {
-  // Check if already loaded in window
-  if ((window as any).FFmpeg) {
-    return (window as any).FFmpeg;
+  if (FFmpegClass) return FFmpegClass;
+
+  if (ffmpegLoadPromise) {
+    return ffmpegLoadPromise;
   }
 
-  // Load FFmpeg from CDN via script tag
-  const script = document.createElement("script");
-  script.type = "module";
-  script.textContent = `
-    import { FFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
-    window.FFmpeg = FFmpeg;
-  `;
+  ffmpegLoadPromise = (async () => {
+    try {
+      // Direct dynamic import from CDN with full URL
+      // @ts-ignore - importing from URL
+      const ffmpegModule = await import(/* webpackIgnore: true */ "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js");
+      FFmpegClass = ffmpegModule.FFmpeg;
+      return FFmpegClass;
+    } catch (error) {
+      console.error("Failed to load FFmpeg:", error);
+      throw new Error("Failed to load FFmpeg. Please refresh and try again.");
+    }
+  })();
 
-  return new Promise((resolve, reject) => {
-    script.onload = () => {
-      // Give it a moment to register
-      setTimeout(() => {
-        if ((window as any).FFmpeg) {
-          resolve((window as any).FFmpeg);
-        } else {
-          reject(new Error("Failed to load FFmpeg"));
-        }
-      }, 100);
-    };
-    script.onerror = () => reject(new Error("Failed to load FFmpeg script"));
-    document.head.appendChild(script);
-  });
+  return ffmpegLoadPromise;
 }
 
 /**
