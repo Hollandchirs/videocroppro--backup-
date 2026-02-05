@@ -527,6 +527,11 @@ export function VideoEditor() {
     }
   }, [videoFile, cropRegion, cropPosition, currentTime, generatedClips, selectedClipId]);
 
+  const drawFrameRef = useRef(drawFrame);
+  useEffect(() => {
+    drawFrameRef.current = drawFrame;
+  }, [drawFrame]);
+
   useEffect(() => {
     if (!isPlaying) return;
     const animate = () => { drawFrame(); animationRef.current = requestAnimationFrame(animate); };
@@ -549,6 +554,37 @@ export function VideoEditor() {
     video.addEventListener("ended", handleEnded);
     return () => video.removeEventListener("ended", handleEnded);
   }, []);
+
+  // After video import: show first frame in preview only on initial load
+  const hasInitializedRef = useRef(false);
+  useEffect(() => {
+    if (!videoRef.current || !canvasRef.current || !videoFile) return;
+
+    // Reset flag when video file changes
+    hasInitializedRef.current = false;
+    const video = videoRef.current;
+
+    const showFirstFrame = () => {
+      if (video.readyState < 2) return;
+      if (hasInitializedRef.current) return; // Only run once per video
+      hasInitializedRef.current = true;
+
+      video.currentTime = 0;
+      setCurrentTime(0);
+      drawFrameRef.current();
+    };
+
+    const onCanPlay = () => {
+      showFirstFrame();
+    };
+
+    video.addEventListener("canplay", onCanPlay);
+    if (video.readyState >= 2) {
+      showFirstFrame();
+    }
+
+    return () => video.removeEventListener("canplay", onCanPlay);
+  }, [videoFile, setCurrentTime]);
 
   useEffect(() => {
     if (!videoRef.current || !canvasRef.current || !videoFile) return;
@@ -576,15 +612,7 @@ export function VideoEditor() {
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!cropRegion || !videoFile) return;
 
-    // If no clip selected, auto-select the clip at current time
-    if (!selectedClipId && generatedClips.length > 0) {
-      const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
-      if (currentClip) {
-        handleClipSelect(currentClip.id);
-      }
-    }
-
-    // Allow dragging when a clip is selected
+    // Only allow dragging when a clip is selected from the timeline
     if (!selectedClipId) return;
 
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -594,6 +622,7 @@ export function VideoEditor() {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !cropRegion || !videoFile || !selectedClipId) return;
+
     const rect = canvasRef.current!.getBoundingClientRect();
     const currentX = (e.clientX - rect.left) * cropRegion.width / rect.width;
     const currentY = (e.clientY - rect.top) * cropRegion.height / rect.height;
@@ -629,18 +658,10 @@ export function VideoEditor() {
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!cropRegion || !videoFile) return;
 
-    // If no clip selected, auto-select the clip at current time
-    let currentClip = null;
-    if (!selectedClipId && generatedClips.length > 0) {
-      const clipAtTime = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
-      if (clipAtTime) {
-        handleClipSelect(clipAtTime.id);
-        currentClip = clipAtTime;
-      }
-    } else {
-      currentClip = generatedClips.find(c => c.id === selectedClipId);
-    }
+    // Only allow touch editing when a clip is selected from the timeline
+    if (!selectedClipId) return;
 
+    const currentClip = generatedClips.find(c => c.id === selectedClipId);
     if (!currentClip) return;
 
     const canvas = canvasRef.current;
@@ -739,23 +760,11 @@ export function VideoEditor() {
 
   // Handle wheel for pan when editing (both X and Y directions)
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!cropRegion || !videoFile) return;
+    if (!cropRegion || !videoFile || !selectedClipId) return;
 
-    // Get current clip - auto-select if none selected
-    let currentClip = null;
-    let clipId = selectedClipId;
-    if (!clipId && generatedClips.length > 0) {
-      const clipAtTime = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
-      if (clipAtTime) {
-        handleClipSelect(clipAtTime.id);
-        currentClip = clipAtTime;
-        clipId = clipAtTime.id;
-      }
-    } else {
-      currentClip = generatedClips.find(c => c.id === clipId);
-    }
+    const currentClip = generatedClips.find(c => c.id === selectedClipId);
+    if (!currentClip) return;
 
-    if (!currentClip || !clipId) return;
     e.preventDefault();
 
     // Support both vertical (deltaY) and horizontal (deltaX) scrolling
@@ -770,12 +779,12 @@ export function VideoEditor() {
     ));
 
     setGeneratedClips(prev => prev.map(clip =>
-      clip.id === clipId
+      clip.id === selectedClipId
         ? { ...clip, cropPosition: { x: newX, y: newY } }
         : clip
     ));
     setCropPosition({ x: newX, y: newY });
-  }, [selectedClipId, cropRegion, videoFile, generatedClips, currentTime, handleClipSelect]);
+  }, [selectedClipId, cropRegion, videoFile, generatedClips]);
 
   if (!videoFile) return null;
 

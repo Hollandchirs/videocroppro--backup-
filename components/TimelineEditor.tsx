@@ -195,58 +195,117 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     [clips, onClipSelect]
   );
 
-  // Handle clip overlap with "覆盖式" behavior - dragged clip covers others
+  // Handle clip boundaries with "覆盖式" behavior - clips must remain continuous without gaps
   const applyClipOverlap = useCallback((
     draggedClipId: string,
     newStartTime: number,
     newEndTime: number
   ): VideoClip[] => {
     const minDuration = 0.5;
-    let updatedClips = clips.map(clip => {
-      if (clip.id === draggedClipId) {
-        return { ...clip, startTime: newStartTime, endTime: newEndTime };
-      }
+    const draggedClip = clips.find(c => c.id === draggedClipId);
+    if (!draggedClip) return clips;
 
-      // Check for overlap with the dragged clip
-      const overlapStart = Math.max(clip.startTime, newStartTime);
-      const overlapEnd = Math.min(clip.endTime, newEndTime);
+    // Sort clips by start time
+    const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
+    const draggedIndex = sortedClips.findIndex(c => c.id === draggedClipId);
 
-      if (overlapStart < overlapEnd) {
-        // There is overlap - the dragged clip "covers" this clip
-        if (newStartTime <= clip.startTime && newEndTime >= clip.endTime) {
-          // Dragged clip completely covers this clip - mark for removal
-          return { ...clip, startTime: -1, endTime: -1 };
-        } else if (newStartTime <= clip.startTime) {
-          // Dragged clip covers the start - shrink from left
-          const newClipStart = newEndTime;
-          if (newClipStart + minDuration >= clip.endTime) {
-            return { ...clip, startTime: -1, endTime: -1 };
+    // Create updated clips array
+    let updatedClips: VideoClip[] = sortedClips.map(clip => ({ ...clip }));
+
+    // Get original boundaries of dragged clip
+    const originalStart = updatedClips[draggedIndex].startTime;
+    const originalEnd = updatedClips[draggedIndex].endTime;
+
+    // Update the dragged clip
+    updatedClips[draggedIndex] = {
+      ...updatedClips[draggedIndex],
+      startTime: newStartTime,
+      endTime: newEndTime,
+    };
+
+    // Handle expansion LEFT (newStartTime < originalStart) - trim previous clips
+    if (newStartTime < originalStart && draggedIndex > 0) {
+      for (let i = draggedIndex - 1; i >= 0; i--) {
+        const clip = updatedClips[i];
+        const nextClip = updatedClips[i + 1];
+        if (clip.endTime > nextClip.startTime) {
+          const newEnd = nextClip.startTime;
+          if (newEnd - clip.startTime < minDuration) {
+            updatedClips[i] = { ...clip, startTime: -1, endTime: -1 };
+          } else {
+            updatedClips[i] = { ...clip, endTime: newEnd };
           }
-          return { ...clip, startTime: newClipStart };
-        } else if (newEndTime >= clip.endTime) {
-          // Dragged clip covers the end - shrink from right
-          const newClipEnd = newStartTime;
-          if (clip.startTime + minDuration >= newClipEnd) {
-            return { ...clip, startTime: -1, endTime: -1 };
-          }
-          return { ...clip, endTime: newClipEnd };
-        } else {
-          // Dragged clip is in the middle - split this clip (keep left part only for simplicity)
-          return { ...clip, endTime: newStartTime };
         }
       }
-      return clip;
-    });
+    }
 
-    // Remove clips marked for deletion (startTime === -1)
-    updatedClips = updatedClips.filter(clip => clip.startTime >= 0);
+    // Handle shrink LEFT (newStartTime > originalStart) - expand previous clip to fill gap
+    if (newStartTime > originalStart && draggedIndex > 0) {
+      const prevClip = updatedClips[draggedIndex - 1];
+      if (prevClip.startTime !== -1) {
+        updatedClips[draggedIndex - 1] = { ...prevClip, endTime: newStartTime };
+      }
+    }
+
+    // Handle expansion RIGHT (newEndTime > originalEnd) - trim next clips
+    if (newEndTime > originalEnd && draggedIndex < updatedClips.length - 1) {
+      for (let i = draggedIndex + 1; i < updatedClips.length; i++) {
+        const clip = updatedClips[i];
+        const prevClip = updatedClips[i - 1];
+        if (prevClip.startTime !== -1 && clip.startTime < prevClip.endTime) {
+          const newStart = prevClip.endTime;
+          if (clip.endTime - newStart < minDuration) {
+            updatedClips[i] = { ...clip, startTime: -1, endTime: -1 };
+          } else {
+            updatedClips[i] = { ...clip, startTime: newStart };
+          }
+        }
+      }
+    }
+
+    // Handle shrink RIGHT (newEndTime < originalEnd) - expand next clip to fill gap
+    if (newEndTime < originalEnd && draggedIndex < updatedClips.length - 1) {
+      const nextClip = updatedClips[draggedIndex + 1];
+      if (nextClip.startTime !== -1) {
+        updatedClips[draggedIndex + 1] = { ...nextClip, startTime: newEndTime };
+      }
+    }
+
+    // Remove clips marked for deletion
+    updatedClips = updatedClips.filter(clip => clip.startTime !== -1);
+
+    // Final pass: ensure all clips are continuous (no gaps)
+    for (let i = 1; i < updatedClips.length; i++) {
+      const prevClip = updatedClips[i - 1];
+      const currentClip = updatedClips[i];
+      if (Math.abs(currentClip.startTime - prevClip.endTime) > 0.01) {
+        updatedClips[i] = { ...currentClip, startTime: prevClip.endTime };
+      }
+    }
+
+    // Ensure all clips are within bounds
+    updatedClips = updatedClips.map(clip => ({
+      ...clip,
+      startTime: Math.max(0, clip.startTime),
+      endTime: Math.min(Math.max(clip.startTime + minDuration, clip.endTime), duration),
+    }));
 
     return updatedClips;
-  }, [clips]);
+  }, [clips, duration]);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!dragState.clipId || !dragState.type) return;
+
+      // Sort clips to find first and last
+      const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
+      const isFirstClip = sortedClips[0]?.id === dragState.clipId;
+      const isLastClip = sortedClips[sortedClips.length - 1]?.id === dragState.clipId;
+
+      // Restrict: first clip's left edge and last clip's right edge cannot be dragged
+      if (dragState.type === "resize-start" && isFirstClip) return;
+      if (dragState.type === "resize-end" && isLastClip) return;
+
       const deltaX = e.clientX - dragState.startX;
       const deltaTime = pxToTime(deltaX);
 
@@ -266,11 +325,11 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       newStartTime = Math.max(0, Math.min(newStartTime, duration - minDuration));
       newEndTime = Math.max(newStartTime + minDuration, Math.min(newEndTime, duration));
 
-      // Apply overlap behavior
+      // Apply overlay behavior
       const updatedClips = applyClipOverlap(dragState.clipId, newStartTime, newEndTime);
       onClipsChange(updatedClips);
     },
-    [dragState, duration, pxToTime, applyClipOverlap, onClipsChange]
+    [dragState, duration, clips, pxToTime, applyClipOverlap, onClipsChange]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -379,12 +438,22 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
         </div>
       </div>
 
-      {/* Time ruler at top of track */}
-      <div className="relative h-5 mb-1">
+      {/* Time ruler at top of track - clickable to seek */}
+      <div
+        className="relative h-5 mb-1 cursor-pointer"
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const time = (x / rect.width) * duration;
+          if (onSeek) {
+            onSeek(Math.max(0, Math.min(time, duration)));
+          }
+        }}
+      >
         {timeMarkers.map((time, idx) => (
           <div
             key={time}
-            className="absolute flex flex-col items-center"
+            className="absolute flex flex-col items-center pointer-events-none"
             style={{ left: `${timeToPx(time)}%`, transform: 'translateX(-50%)' }}
           >
             <span className="text-[10px] text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
@@ -403,6 +472,11 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       >
         <div className="relative overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-800 dark:bg-neutral-900 h-16">
           {clips.map((clip, index) => {
+            // Sort clips to determine if this is first or last
+            const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
+            const isFirstClip = sortedClips[0]?.id === clip.id;
+            const isLastClip = sortedClips[sortedClips.length - 1]?.id === clip.id;
+
             const left = timeToPx(clip.startTime);
             const width = timeToPx(clip.endTime - clip.startTime);
             const isSelected = clip.id === selectedClipId;
@@ -414,16 +488,27 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
             return (
               <div
                 key={clip.id}
-                className={`absolute h-full transition-all rounded overflow-hidden ${
+                className={`absolute h-full transition-all rounded overflow-hidden cursor-pointer ${
                   isSelected
-                    ? "bg-[#C2F159] ring-2 ring-white ring-offset-1 ring-offset-neutral-900 z-10"
+                    ? "bg-[#C2F159] ring-2 ring-white ring-offset-1 ring-offset-neutral-900"
                     : "bg-[#4A4A4A] hover:bg-[#5A5A5A]"
                 }`}
-                style={{ left: `${left}%`, width: `${width}%` }}
-                onMouseDown={(e) => handleClipMouseDown(e, clip, "move")}
+                style={{
+                  left: `${left}%`,
+                  width: `${width}%`,
+                  zIndex: isSelected ? 10 : 1
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClipSelect(clip.id);
+                  // Jump playhead to clip start
+                  if (onSeek) {
+                    onSeek(clip.startTime);
+                  }
+                }}
               >
                 {/* Clip info - with text truncation */}
-                <div className={`h-full flex flex-col items-center justify-center px-1 overflow-hidden ${
+                <div className={`h-full flex flex-col items-center justify-center px-1 overflow-hidden pointer-events-none ${
                   isSelected ? "text-black" : "text-white"
                 }`}>
                   <div className="font-medium text-xs truncate w-full text-center">
@@ -442,21 +527,27 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
                   )}
                 </div>
 
-                {/* Resize handles - only show when selected */}
+                {/* Resize handles - only show when selected, hide first clip left edge and last clip right edge */}
                 {isSelected && (
                   <>
-                    <div
-                      className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 flex items-center justify-center"
-                      onMouseDown={(e) => handleClipMouseDown(e, clip, "resize-start")}
-                    >
-                      <div className="w-0.5 h-6 bg-black/30 rounded" />
-                    </div>
-                    <div
-                      className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 flex items-center justify-center"
-                      onMouseDown={(e) => handleClipMouseDown(e, clip, "resize-end")}
-                    >
-                      <div className="w-0.5 h-6 bg-black/30 rounded" />
-                    </div>
+                    {/* Left resize handle - hidden for first clip */}
+                    {!isFirstClip && (
+                      <div
+                        className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-white/30 hover:bg-white/50 flex items-center justify-center"
+                        onMouseDown={(e) => handleClipMouseDown(e, clip, "resize-start")}
+                      >
+                        <div className="w-0.5 h-8 bg-black/40 rounded" />
+                      </div>
+                    )}
+                    {/* Right resize handle - hidden for last clip */}
+                    {!isLastClip && (
+                      <div
+                        className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize bg-white/30 hover:bg-white/50 flex items-center justify-center"
+                        onMouseDown={(e) => handleClipMouseDown(e, clip, "resize-end")}
+                      >
+                        <div className="w-0.5 h-8 bg-black/40 rounded" />
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -471,30 +562,38 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
           )}
         </div>
 
-        {/* Playhead */}
+        {/* Playhead - draggable */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-[#C2F159] z-20 pointer-events-none"
-          style={{ left: `${timeToPx(currentTime)}%` }}
-        >
-          <div className="absolute -top-2 -left-2 w-4 h-4 bg-[#C2F159] rotate-45 rounded-sm" />
-        </div>
+          className="absolute top-0 bottom-0 w-4 z-20 cursor-ew-resize flex justify-center"
+          style={{ left: `calc(${timeToPx(currentTime)}% - 8px)` }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startTime = currentTime;
 
-        {/* Seek input - placed below clips to not block interactions */}
-        <input
-          type="range"
-          min={0}
-          max={duration}
-          step={0.01}
-          value={currentTime}
-          onChange={(e) => {
-            const time = parseFloat(e.target.value);
-            if (onSeek) {
-              onSeek(time);
-            }
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+              if (!timelineRef.current) return;
+              const rect = timelineRef.current.getBoundingClientRect();
+              const deltaX = moveEvent.clientX - startX;
+              const deltaTime = (deltaX / rect.width) * duration;
+              const newTime = Math.max(0, Math.min(startTime + deltaTime, duration));
+              if (onSeek) {
+                onSeek(newTime);
+              }
+            };
+
+            const handleMouseUp = () => {
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
           }}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-0"
-          style={{ pointerEvents: 'auto' }}
-        />
+        >
+          <div className="w-0.5 h-full bg-[#C2F159]" />
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#C2F159] rotate-45 rounded-sm" />
+        </div>
       </div>
 
       {/* Instructions */}
