@@ -5,14 +5,33 @@ import { VideoUploader } from "@/components/VideoUploader";
 import { PlatformSelector } from "@/components/PlatformSelector";
 import { CropStrategySelector } from "@/components/CropStrategySelector";
 import { VideoEditor } from "@/components/VideoEditor";
+import { ExportProgressModal } from "@/components/ExportProgressModal";
 import { useVideoStore } from "@/lib/store";
 import { getPlatformById } from "@/lib/platforms";
-import { exportVideoWithClips, downloadMultipleFiles } from "@/lib/videoExporter";
+import { exportVideoWithClips } from "@/lib/videoExporter";
+
+interface DownloadUrl {
+  platformId: string;
+  url: string;
+  filename: string;
+}
 
 export default function HomePage() {
   const [showEditor, setShowEditor] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing, currentClips, cropStrategy } = useVideoStore();
+  const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing, currentClips, cropStrategy, isProcessing, setIsProcessing } = useVideoStore();
+
+  // Export modal state
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState<"processing" | "uploading" | "completed" | "error">("processing");
+  const [exportProgress, setExportProgress] = useState<{
+    current: number;
+    total: number;
+    platformId: string;
+    percent: number;
+  } | null>(null);
+  const [downloadUrls, setDownloadUrls] = useState<DownloadUrl[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Check if export is ready (has video, has selected platforms, has generated clips, not analyzing)
   const isExportReady = videoFile && selectedPlatforms.length > 0 && currentClips && currentClips.length > 0 && !isAnalyzing;
@@ -29,46 +48,93 @@ export default function HomePage() {
   const handleExport = async () => {
     if (!isExportReady || !videoFile || !currentClips || selectedPlatforms.length === 0) return;
 
-    try {
-      setIsExporting(true);
+    setIsExportModalOpen(true);
+    setExportStatus("processing");
+    setExportProgress(null);
+    setDownloadUrls([]);
+    setErrorMessage("");
+    setIsProcessing(true);
 
+    try {
       // Export for each platform using current clips
       const results = await Promise.all(
-        selectedPlatforms.map(async (platformId) => {
+        selectedPlatforms.map(async (platformId, index) => {
           const platform = getPlatformById(platformId);
           if (!platform) {
             throw new Error(`Unknown platform: ${platformId}`);
           }
+
+          setExportProgress({
+            current: index + 1,
+            total: selectedPlatforms.length,
+            platformId,
+            percent: 0,
+          });
 
           const blob = await exportVideoWithClips(
             videoFile.file,
             currentClips,
             platform.width,
             platform.height,
-            cropStrategy || "smart-crop"
+            cropStrategy || "smart-crop",
+            (percent) => {
+              setExportProgress({
+                current: index + 1,
+                total: selectedPlatforms.length,
+                platformId,
+                percent,
+              });
+            }
           );
 
           return { platformId, blob };
         })
       );
 
-      // Prepare files for download
-      const files = results.map(({ platformId, blob }) => {
+      // Switch to uploading status
+      setExportStatus("uploading");
+      setExportProgress(null);
+
+      // Upload all videos to storage
+      const uploadPromises = results.map(async ({ platformId, blob }) => {
         const platform = getPlatformById(platformId);
         const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
+        const filename = `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`;
+
+        // Create form data
+        const formData = new FormData();
+        formData.append("file", blob, filename);
+        formData.append("filename", filename);
+
+        // Upload to API
+        const response = await fetch("/api/export", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Upload failed");
+        }
+
+        const data = await response.json();
         return {
-          blob,
-          filename: `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`,
+          platformId,
+          url: data.downloadUrl,
+          filename,
         };
       });
 
-      // Download files
-      await downloadMultipleFiles(files);
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setDownloadUrls(uploadedUrls);
+      setExportStatus("completed");
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Export failed. Please try again.");
+      setErrorMessage(error instanceof Error ? error.message : "Export failed. Please try again.");
+      setExportStatus("error");
     } finally {
       setIsExporting(false);
+      setIsProcessing(false);
     }
   };
 
@@ -197,6 +263,21 @@ export default function HomePage() {
           </>
         )}
       </section>
+
+      {/* Export Progress Modal */}
+      <ExportProgressModal
+        isOpen={isExportModalOpen}
+        platforms={selectedPlatforms}
+        progress={exportProgress}
+        status={exportStatus}
+        downloadUrls={downloadUrls}
+        error={errorMessage}
+        onClose={() => {
+          setIsExportModalOpen(false);
+          setExportStatus("processing");
+          setDownloadUrls([]);
+        }}
+      />
 
       {/* Features Section - Hide when editing */}
       {!showEditor && (
