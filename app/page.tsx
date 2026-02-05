@@ -6,14 +6,16 @@ import { PlatformSelector } from "@/components/PlatformSelector";
 import { CropStrategySelector } from "@/components/CropStrategySelector";
 import { VideoEditor } from "@/components/VideoEditor";
 import { useVideoStore } from "@/lib/store";
+import { getPlatformById } from "@/lib/platforms";
+import { exportVideoWithClips, downloadMultipleFiles } from "@/lib/videoExporter";
 
 export default function HomePage() {
   const [showEditor, setShowEditor] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing } = useVideoStore();
+  const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing, currentClips, cropStrategy } = useVideoStore();
 
   // Check if export is ready (has video, has selected platforms, has generated clips, not analyzing)
-  const isExportReady = videoFile && selectedPlatforms.length > 0 && editProject && editProject.clips.length > 0 && !isAnalyzing;
+  const isExportReady = videoFile && selectedPlatforms.length > 0 && currentClips && currentClips.length > 0 && !isAnalyzing;
 
   const handleVideoLoaded = () => {
     setShowEditor(true);
@@ -25,11 +27,49 @@ export default function HomePage() {
   };
 
   const handleExport = async () => {
-    if (!isExportReady) return;
-    setIsExporting(true);
-    // TODO: Implement actual export logic
-    console.log("Exporting for platforms:", selectedPlatforms);
-    setTimeout(() => setIsExporting(false), 2000);
+    if (!isExportReady || !videoFile || !currentClips || selectedPlatforms.length === 0) return;
+
+    try {
+      setIsExporting(true);
+
+      // Export for each platform using current clips
+      const results = await Promise.all(
+        selectedPlatforms.map(async (platformId) => {
+          const platform = getPlatformById(platformId);
+          if (!platform) {
+            throw new Error(`Unknown platform: ${platformId}`);
+          }
+
+          const blob = await exportVideoWithClips(
+            videoFile.file,
+            currentClips,
+            platform.width,
+            platform.height,
+            cropStrategy || "smart-crop"
+          );
+
+          return { platformId, blob };
+        })
+      );
+
+      // Prepare files for download
+      const files = results.map(({ platformId, blob }) => {
+        const platform = getPlatformById(platformId);
+        const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
+        return {
+          blob,
+          filename: `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`,
+        };
+      });
+
+      // Download files
+      await downloadMultipleFiles(files);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Export failed. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (

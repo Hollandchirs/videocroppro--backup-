@@ -24,7 +24,15 @@ const STRATEGIES: {
 ];
 
 export function CropStrategySelector() {
-  const { cropStrategy, setCropStrategy } = useVideoStore();
+  const { cropStrategy, setCropStrategy, isAnalyzing } = useVideoStore();
+
+  const handleStrategyChange = (newStrategy: CropStrategy) => {
+    if (isAnalyzing) {
+      alert("Please wait for the current analysis to complete before changing the crop strategy.");
+      return;
+    }
+    setCropStrategy(newStrategy);
+  };
 
   return (
     <div>
@@ -34,7 +42,7 @@ export function CropStrategySelector() {
           return (
             <button
               key={strategy.id}
-              onClick={() => setCropStrategy(strategy.id)}
+              onClick={() => handleStrategyChange(strategy.id)}
               className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 text-center ${
                 isSelected
                   ? "border-[#C2F159] bg-[#C2F159]/20 dark:bg-[#C2F159]/10"

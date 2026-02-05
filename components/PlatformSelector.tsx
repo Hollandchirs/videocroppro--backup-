@@ -5,7 +5,7 @@ import { useVideoStore } from "@/lib/store";
 import { PLATFORM_CONFIGS, ASPECT_RATIOS } from "@/lib/platforms";
 
 export function PlatformSelector() {
-  const { selectedPlatforms, setSelectedPlatforms } = useVideoStore();
+  const { selectedPlatforms, setSelectedPlatforms, isAnalyzing } = useVideoStore();
 
   const ratioOrder = ["9:16", "1:1", "4:5", "16:9"];
 
@@ -38,10 +38,14 @@ export function PlatformSelector() {
   }, [selectedPlatforms]);
 
   const toggleRatioSelection = useCallback((platformIds: string[], allSelected: boolean) => {
+    if (isAnalyzing) {
+      alert("Please wait for the current analysis to complete before changing the aspect ratio.");
+      return;
+    }
     // If already selected, deselect (clear all)
     // If not selected, select only this ratio (clear others and select this)
     setSelectedPlatforms(allSelected ? [] : platformIds);
-  }, [setSelectedPlatforms]);
+  }, [setSelectedPlatforms, isAnalyzing]);
 
   return (
     <div className="space-y-3 max-h-[calc(100vh-420px)] overflow-y-auto pr-2">

@@ -7,6 +7,7 @@ import {
   BlackBarsDetection,
   SpeakerTrajectoryPoint,
   EditProject,
+  VideoClip,
 } from "./types";
 
 interface VideoStore {
@@ -59,6 +60,10 @@ interface VideoStore {
   // Current edit project (for backward compatibility)
   editProject: EditProject | null;
   setCurrentEditProject: (project: EditProject | null) => void;
+
+  // Current generated clips (for export)
+  currentClips: VideoClip[];
+  setCurrentClips: (clips: VideoClip[]) => void;
 
   // Selected clip
   selectedClipId: string | null;
@@ -157,6 +162,10 @@ export const useVideoStore = create<VideoStore>((set, get) => ({
   editProject: null,
   setCurrentEditProject: (project) => set({ editProject: project }),
 
+  // Current generated clips (for export)
+  currentClips: [],
+  setCurrentClips: (clips) => set({ currentClips: clips }),
+
   // Selected clip
   selectedClipId: null,
   setSelectedClipId: (id) => set({ selectedClipId: id }),
@@ -217,6 +226,7 @@ export const useVideoStore = create<VideoStore>((set, get) => ({
       trajectory: [],
       editProjects: new Map(),
       editProject: null,
+      currentClips: [],
       selectedClipId: null,
       isAnalyzing: false,
       analysisProgress: 0,

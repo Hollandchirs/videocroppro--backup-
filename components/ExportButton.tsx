@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useVideoStore } from "@/lib/store";
 import { getPlatformById } from "@/lib/platforms";
 import {
-  exportForMultiplePlatforms,
+  exportVideoWithClips,
   downloadMultipleFiles,
 } from "@/lib/videoExporter";
 
 export function ExportButton() {
-  const { videoFile, cropRegion, selectedPlatforms, cropStrategy, isProcessing, setIsProcessing } =
+  const { videoFile, currentClips, selectedPlatforms, cropStrategy, isProcessing, setIsProcessing } =
     useVideoStore();
   const [exportProgress, setExportProgress] = useState<{
     current: number;
@@ -19,35 +19,35 @@ export function ExportButton() {
   } | null>(null);
 
   const handleExport = async () => {
-    if (!videoFile || !cropRegion || selectedPlatforms.length === 0) {
+    if (!videoFile || currentClips.length === 0 || selectedPlatforms.length === 0) {
       return;
     }
 
     try {
       setIsProcessing(true);
 
-      // Prepare export data for each platform
-      const exportData = selectedPlatforms.map((platformId) => {
-        const platform = getPlatformById(platformId);
-        if (!platform) {
-          throw new Error(`Unknown platform: ${platformId}`);
-        }
-        return {
-          crop: cropRegion,
-          width: platform.width,
-          height: platform.height,
-          platformId,
-        };
-      });
+      // Export for each platform using current clips with original quality
+      const results = await Promise.all(
+        selectedPlatforms.map(async (platformId) => {
+          const platform = getPlatformById(platformId);
+          if (!platform) {
+            throw new Error(`Unknown platform: ${platformId}`);
+          }
 
-      // Export videos
-      const results = await exportForMultiplePlatforms(
-        videoFile.file,
-        exportData,
-        cropStrategy,
-        (current, total, platformId, percent) => {
-          setExportProgress({ current, total, platformId, percent });
-        }
+          // Export with clips at original quality (using platform dimensions)
+          const blob = await exportVideoWithClips(
+            videoFile.file,
+            currentClips,
+            platform.width,
+            platform.height,
+            cropStrategy,
+            (percent) => {
+              setExportProgress({ current: selectedPlatforms.indexOf(platformId) + 1, total: selectedPlatforms.length, platformId, percent });
+            }
+          );
+
+          return { platformId, blob };
+        })
       );
 
       // Prepare files for download
@@ -71,7 +71,7 @@ export function ExportButton() {
     }
   };
 
-  const isDisabled = !videoFile || !cropRegion || selectedPlatforms.length === 0 || isProcessing;
+  const isDisabled = !videoFile || currentClips.length === 0 || selectedPlatforms.length === 0 || isProcessing;
 
   return (
     <div className="text-center">

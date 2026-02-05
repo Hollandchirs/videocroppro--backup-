@@ -196,6 +196,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   );
 
   // Handle clip boundaries with "覆盖式" behavior - clips must remain continuous without gaps
+  // Key principle: only affect directly adjacent clips, don't cascade
   const applyClipOverlap = useCallback((
     draggedClipId: string,
     newStartTime: number,
@@ -216,6 +217,15 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     const originalStart = updatedClips[draggedIndex].startTime;
     const originalEnd = updatedClips[draggedIndex].endTime;
 
+    // Clamp new times to valid range
+    newStartTime = Math.max(0, newStartTime);
+    newEndTime = Math.min(duration, newEndTime);
+
+    // Ensure minimum duration
+    if (newEndTime - newStartTime < minDuration) {
+      return clips; // Don't allow clip to become too short
+    }
+
     // Update the dragged clip
     updatedClips[draggedIndex] = {
       ...updatedClips[draggedIndex],
@@ -223,18 +233,23 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       endTime: newEndTime,
     };
 
-    // Handle expansion LEFT (newStartTime < originalStart) - trim previous clips
+    // Handle expansion LEFT (newStartTime < originalStart) - only trim the directly previous clip
     if (newStartTime < originalStart && draggedIndex > 0) {
-      for (let i = draggedIndex - 1; i >= 0; i--) {
-        const clip = updatedClips[i];
-        const nextClip = updatedClips[i + 1];
-        if (clip.endTime > nextClip.startTime) {
-          const newEnd = nextClip.startTime;
-          if (newEnd - clip.startTime < minDuration) {
-            updatedClips[i] = { ...clip, startTime: -1, endTime: -1 };
-          } else {
-            updatedClips[i] = { ...clip, endTime: newEnd };
+      const prevClip = updatedClips[draggedIndex - 1];
+      if (prevClip.endTime > newStartTime) {
+        const newEnd = newStartTime;
+        if (newEnd - prevClip.startTime < minDuration) {
+          // Previous clip would be too short - mark for deletion
+          updatedClips[draggedIndex - 1] = { ...prevClip, startTime: -1, endTime: -1 };
+          // The clip before the deleted one (if any) should extend to fill the gap
+          if (draggedIndex > 1) {
+            const clipBeforePrev = updatedClips[draggedIndex - 2];
+            if (clipBeforePrev.startTime !== -1) {
+              updatedClips[draggedIndex - 2] = { ...clipBeforePrev, endTime: newStartTime };
+            }
           }
+        } else {
+          updatedClips[draggedIndex - 1] = { ...prevClip, endTime: newEnd };
         }
       }
     }
@@ -247,18 +262,23 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       }
     }
 
-    // Handle expansion RIGHT (newEndTime > originalEnd) - trim next clips
+    // Handle expansion RIGHT (newEndTime > originalEnd) - only trim the directly next clip
     if (newEndTime > originalEnd && draggedIndex < updatedClips.length - 1) {
-      for (let i = draggedIndex + 1; i < updatedClips.length; i++) {
-        const clip = updatedClips[i];
-        const prevClip = updatedClips[i - 1];
-        if (prevClip.startTime !== -1 && clip.startTime < prevClip.endTime) {
-          const newStart = prevClip.endTime;
-          if (clip.endTime - newStart < minDuration) {
-            updatedClips[i] = { ...clip, startTime: -1, endTime: -1 };
-          } else {
-            updatedClips[i] = { ...clip, startTime: newStart };
+      const nextClip = updatedClips[draggedIndex + 1];
+      if (nextClip.startTime < newEndTime) {
+        const newStart = newEndTime;
+        if (nextClip.endTime - newStart < minDuration) {
+          // Next clip would be too short - mark for deletion
+          updatedClips[draggedIndex + 1] = { ...nextClip, startTime: -1, endTime: -1 };
+          // The clip after the deleted one (if any) should move to fill the gap
+          if (draggedIndex + 2 < updatedClips.length) {
+            const clipAfterNext = updatedClips[draggedIndex + 2];
+            if (clipAfterNext.startTime !== -1) {
+              updatedClips[draggedIndex + 2] = { ...clipAfterNext, startTime: newEndTime };
+            }
           }
+        } else {
+          updatedClips[draggedIndex + 1] = { ...nextClip, startTime: newStart };
         }
       }
     }
@@ -274,21 +294,25 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     // Remove clips marked for deletion
     updatedClips = updatedClips.filter(clip => clip.startTime !== -1);
 
-    // Final pass: ensure all clips are continuous (no gaps)
+    // Final pass: ensure all clips are continuous (no gaps) - fix only small gaps
     for (let i = 1; i < updatedClips.length; i++) {
       const prevClip = updatedClips[i - 1];
       const currentClip = updatedClips[i];
-      if (Math.abs(currentClip.startTime - prevClip.endTime) > 0.01) {
+      const gap = currentClip.startTime - prevClip.endTime;
+      // Only fix small gaps (< 1 second), larger gaps indicate a problem
+      if (gap > 0.01 && gap < 1.0) {
         updatedClips[i] = { ...currentClip, startTime: prevClip.endTime };
       }
     }
 
-    // Ensure all clips are within bounds
-    updatedClips = updatedClips.map(clip => ({
-      ...clip,
-      startTime: Math.max(0, clip.startTime),
-      endTime: Math.min(Math.max(clip.startTime + minDuration, clip.endTime), duration),
-    }));
+    // Ensure first clip starts at 0 and last clip ends at duration
+    if (updatedClips.length > 0) {
+      updatedClips[0] = { ...updatedClips[0], startTime: 0 };
+      updatedClips[updatedClips.length - 1] = {
+        ...updatedClips[updatedClips.length - 1],
+        endTime: duration
+      };
+    }
 
     return updatedClips;
   }, [clips, duration]);

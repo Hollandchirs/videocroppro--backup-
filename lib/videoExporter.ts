@@ -1,32 +1,8 @@
-import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { CropRegion, CropStrategy, VideoClip } from "./types";
-
-let ffmpegInstance: FFmpeg | null = null;
-
-/**
- * Initialize FFmpeg WASM
- */
-export async function initFFmpeg(): Promise<FFmpeg> {
-  if (ffmpegInstance) {
-    return ffmpegInstance;
-  }
-
-  const ffmpeg = new FFmpeg();
-
-  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
-
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
-  });
-
-  ffmpegInstance = ffmpeg;
-  return ffmpeg;
-}
 
 /**
  * Export video with crop region (crop strategy)
+ * Preserves original video quality
  */
 export async function exportVideo(
   videoFile: File,
@@ -36,7 +12,15 @@ export async function exportVideo(
   strategy: CropStrategy = "smart-crop",
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const ffmpeg = await initFFmpeg();
+  const { FFmpeg, fetchFile, toBlobURL } = await importFFmpegModules();
+
+  // Create a new FFmpeg instance each time
+  const ffmpeg = new FFmpeg();
+
+  await ffmpeg.load({
+    coreURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js", "text/javascript"),
+    wasmURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm", "application/wasm"),
+  });
 
   // Write input file
   await ffmpeg.writeFile("input.mp4", await fetchFile(videoFile));
@@ -50,6 +34,14 @@ export async function exportVideo(
       "input.mp4",
       "-vf",
       `scale=${outputWidth}:${outputHeight}:force_original_aspect_ratio=decrease,pad=${outputWidth}:${outputHeight}:(ow-iw)/2:(oh-ih)/2`,
+      "-c:v",
+      "libx264",
+      "-preset",
+      "slow",
+      "-crf",
+      "18", // High quality (18 is near lossless, lower is better, 18-28 is typical range)
+      "-pix_fmt",
+      "yuv420p",
       "-c:a",
       "copy",
       "-movflags",
@@ -63,6 +55,14 @@ export async function exportVideo(
       "input.mp4",
       "-vf",
       `crop=${Math.round(cropRegion.width)}:${Math.round(cropRegion.height)}:${Math.round(cropRegion.x)}:${Math.round(cropRegion.y)},scale=${outputWidth}:${outputHeight}`,
+      "-c:v",
+      "libx264",
+      "-preset",
+      "slow",
+      "-crf",
+      "18", // High quality
+      "-pix_fmt",
+      "yuv420p",
       "-c:a",
       "copy",
       "-movflags",
@@ -158,6 +158,7 @@ export async function downloadMultipleFiles(
 /**
  * Export video with smart clips
  * Each clip has its own crop position applied to its time segment
+ * Preserves original video quality
  * @param videoFile Input video file
  * @param clips Array of video clips with different crop positions
  * @param outputWidth Output width
@@ -174,7 +175,15 @@ export async function exportVideoWithClips(
   strategy: CropStrategy = "smart-crop",
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const ffmpeg = await initFFmpeg();
+  const { FFmpeg, fetchFile, toBlobURL } = await importFFmpegModules();
+
+  // Create a new FFmpeg instance each time
+  const ffmpeg = new FFmpeg();
+
+  await ffmpeg.load({
+    coreURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js", "text/javascript"),
+    wasmURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm", "application/wasm"),
+  });
 
   // Write input file
   await ffmpeg.writeFile("input.mp4", await fetchFile(videoFile));
@@ -184,12 +193,23 @@ export async function exportVideoWithClips(
   if (clips.length === 1) {
     // Single clip - use simple export
     const clip = clips[0];
+    const cropX = Math.round(clip.cropPosition.x);
+    const cropY = Math.round(clip.cropPosition.y);
+
     if (strategy === "center-crop") {
       command = [
         "-i",
         "input.mp4",
         "-vf",
         `scale=${outputWidth}:${outputHeight}:force_original_aspect_ratio=decrease,pad=${outputWidth}:${outputHeight}:(ow-iw)/2:(oh-ih)/2`,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "18", // High quality (18 is near lossless, lower is better, 18-28 is typical range)
+        "-pix_fmt",
+        "yuv420p",
         "-map",
         "0:v",
         "-map",
@@ -201,11 +221,20 @@ export async function exportVideoWithClips(
         "output.mp4",
       ];
     } else {
+      // Smart crop: crop outputWidth x outputHeight from cropPosition
       command = [
         "-i",
         "input.mp4",
         "-vf",
-        `crop=${Math.round(clip.cropPosition.x + (clip.speakerCenter.x * 0))}:${Math.round(clip.cropPosition.y)}:scale=${outputWidth}:${outputHeight}`,
+        `crop=${outputWidth}:${outputHeight}:${cropX}:${cropY}`,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "18", // High quality
+        "-pix_fmt",
+        "yuv420p",
         "-c:a",
         "copy",
         "-movflags",
@@ -226,6 +255,14 @@ export async function exportVideoWithClips(
       "[out]",
       "-map",
       "0:a?",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "slow",
+      "-crf",
+      "18", // High quality
+      "-pix_fmt",
+      "yuv420p",
       "-c:a",
       "copy",
       "-movflags",
@@ -291,9 +328,10 @@ function generateSegmentFilter(
       // Trim segment to clip duration
       filter += `[0:v]trim=${clip.startTime}:${clip.endTime},setpts=PTS-STARTPTS,`;
 
-      // Crop to clip position and scale to output size
-      filter += `crop=${Math.round(outputWidth)}:${Math.round(outputHeight)}:${Math.round(clip.cropPosition.x)}:${Math.round(clip.cropPosition.y)},`;
-      filter += `scale=${outputWidth}:${outputHeight}[v${i}];`;
+      // Crop to clip position (crop outputWidth x outputHeight from cropPosition)
+      const cropX = Math.round(clip.cropPosition.x);
+      const cropY = Math.round(clip.cropPosition.y);
+      filter += `crop=${outputWidth}:${outputHeight}:${cropX}:${cropY}[v${i}];`;
     }
   }
 
@@ -302,4 +340,18 @@ function generateSegmentFilter(
   filter += `${segmentList}concat=n=${effectiveClips.length}:v=1[out]`;
 
   return filter;
+}
+
+/**
+ * Helper function to dynamically import FFmpeg modules
+ */
+async function importFFmpegModules() {
+  const ffmpegModule = await import('@ffmpeg/ffmpeg');
+  const utilModule = await import('@ffmpeg/util');
+
+  return {
+    FFmpeg: ffmpegModule.FFmpeg,
+    fetchFile: utilModule.fetchFile,
+    toBlobURL: utilModule.toBlobURL,
+  };
 }

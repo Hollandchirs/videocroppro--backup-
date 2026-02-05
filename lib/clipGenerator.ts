@@ -217,8 +217,10 @@ export function generateHardCutClipsFromAnalysis(
   }
 
   const clips: VideoClip[] = [];
-  const minClipDuration = 2.0; // Minimum 2 seconds per clip to avoid too rapid cuts
-  const positionThreshold = 100; // Position change threshold (pixels)
+  // Increased thresholds to reduce clip fragmentation
+  // For a 60s video, aim for ~10-14 clips max (4-6 seconds per clip average)
+  const minClipDuration = 4.0; // Minimum 4 seconds per clip to avoid too rapid cuts
+  const positionThreshold = 150; // Position change threshold (pixels) - higher = fewer cuts
 
   let currentClipStart = 0;
   let currentStrategy = frameAnalyses[0].strategy;

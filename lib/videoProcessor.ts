@@ -24,6 +24,7 @@ export async function loadVideoFile(file: File): Promise<VideoFile> {
     });
 
     video.src = url;
+    video.load();
   });
 }
 

@@ -40,7 +40,6 @@ export function VideoEditor() {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const previousRatioRef = useRef<string | null>(null);
   const previousStrategyRef = useRef<string | null>(null);
-  const analysisPendingRef = useRef<string | null>(null);
 
   const {
     videoFile,
@@ -66,6 +65,7 @@ export function VideoEditor() {
     setEditProject,
     setCurrentEditProject,
     cropStrategy,
+    setCurrentClips,
   } = useVideoStore();
 
   const targetPlatform = selectedPlatforms[0]
@@ -92,6 +92,13 @@ export function VideoEditor() {
     if (!videoFile) return null;
     return `${videoFile.file.name}-${ratio}-${strategy}`;
   }, [videoFile]);
+
+  // Sync generatedClips to store for export
+  useEffect(() => {
+    if (generatedClips.length > 0) {
+      setCurrentClips(generatedClips);
+    }
+  }, [generatedClips, setCurrentClips]);
 
   const runBlackBarDetection = useCallback(async () => {
     if (!videoFile) return null;
@@ -234,7 +241,15 @@ export function VideoEditor() {
 
     const projectKey = `${ratio}-${strategy}`;
 
-    // Check for saved analysis results first
+    // ALWAYS cancel any ongoing analysis first when switching
+    if (isAnalyzing && currentAnalyzingRatio !== projectKey) {
+      cancelCurrentAnalysis();
+    }
+
+    // Already analyzing this ratio/strategy
+    if (isAnalyzing && currentAnalyzingRatio === projectKey) return;
+
+    // Check for saved analysis results - load immediately
     if (hasAnalyzedRatio(projectKey)) {
       const projectId = getProjectId(ratio, strategy);
       if (projectId) {
@@ -244,32 +259,17 @@ export function VideoEditor() {
           setGeneratedClips(savedProject.clips);
           if (savedProject.blackBars) {
             setBlackBars(savedProject.blackBars);
+            if (savedProject.blackBars.hasBlackBars) {
+              setSafeArea(savedProject.blackBars.safeArea);
+            }
+          }
+          if (savedProject.clips.length > 0) {
+            setCropPosition(savedProject.clips[0].cropPosition);
           }
           return;
         }
       }
     }
-
-    // If currently analyzing a different ratio/strategy, cancel and queue new analysis
-    if (isAnalyzing && currentAnalyzingRatio !== projectKey) {
-      cancelCurrentAnalysis();
-      analysisPendingRef.current = ratio;
-      // After cancellation, wait for state to update then trigger new analysis
-      setTimeout(() => {
-        if (analysisPendingRef.current) {
-          const pendingRatio = analysisPendingRef.current;
-          analysisPendingRef.current = null;
-          triggerAnalysis(pendingRatio, strategy);
-        }
-      }, 100);
-      return;
-    }
-
-    // Already analyzing this ratio/strategy
-    if (isAnalyzing && currentAnalyzingRatio === projectKey) return;
-
-    // Clear pending analysis since we're starting it now
-    analysisPendingRef.current = null;
 
     // Center Crop mode: black bar detection + center crop, always 1 clip
     if (strategy === "center-crop") {
@@ -283,14 +283,8 @@ export function VideoEditor() {
       try {
         const blackBarResult = await runBlackBarDetection();
 
-        // Check if aborted
+        // Check if aborted - just return silently
         if (abortController.signal.aborted) {
-          if (analysisPendingRef.current) {
-            const pendingRatio = analysisPendingRef.current;
-            const pendingStrategy = cropStrategy;
-            analysisPendingRef.current = null;
-            setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-          }
           return;
         }
 
@@ -345,14 +339,6 @@ export function VideoEditor() {
         setCurrentAnalyzingRatio(null);
         setAnalysisAbortController(null);
         setAnalysisProgress(1);
-
-        // Handle pending analysis after completion
-        if (analysisPendingRef.current) {
-          const pendingRatio = analysisPendingRef.current;
-          const pendingStrategy = cropStrategy;
-          analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-        }
       }
       return;
     }
@@ -370,14 +356,8 @@ export function VideoEditor() {
       try {
         const blackBarResult = await runBlackBarDetection();
 
-        // Check if aborted
+        // Check if aborted - just return silently
         if (abortController.signal.aborted) {
-          if (analysisPendingRef.current) {
-            const pendingRatio = analysisPendingRef.current;
-            const pendingStrategy = cropStrategy;
-            analysisPendingRef.current = null;
-            setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-          }
           return;
         }
 
@@ -432,14 +412,6 @@ export function VideoEditor() {
         setCurrentAnalyzingRatio(null);
         setAnalysisAbortController(null);
         setAnalysisProgress(1);
-
-        // Handle pending analysis after completion
-        if (analysisPendingRef.current) {
-          const pendingRatio = analysisPendingRef.current;
-          const pendingStrategy = cropStrategy;
-          analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-        }
       }
       return;
     }
@@ -456,13 +428,8 @@ export function VideoEditor() {
       // First detect black bars
       const blackBarResult = await runBlackBarDetection();
 
+      // Check if aborted - just return silently
       if (abortController.signal.aborted) {
-        if (analysisPendingRef.current) {
-          const pendingRatio = analysisPendingRef.current;
-          const pendingStrategy = cropStrategy;
-          analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-        }
         return;
       }
 
@@ -488,14 +455,8 @@ export function VideoEditor() {
       // Now run the analysis with updated cropRegion
       const project = await runHardCutAnalysis(ratio, abortController.signal);
 
+      // Check if aborted or no project - just return silently
       if (!project || abortController.signal.aborted) {
-        // Analysis was aborted, handle pending
-        if (analysisPendingRef.current) {
-          const pendingRatio = analysisPendingRef.current;
-          const pendingStrategy = cropStrategy;
-          analysisPendingRef.current = null;
-          setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-        }
         return;
       }
 
@@ -509,14 +470,6 @@ export function VideoEditor() {
       if (project.clips.length > 0) {
         setCropPosition(project.clips[0].cropPosition);
       }
-
-      // Handle pending analysis after successful completion
-      if (analysisPendingRef.current) {
-        const pendingRatio = analysisPendingRef.current;
-        const pendingStrategy = cropStrategy;
-        analysisPendingRef.current = null;
-        setTimeout(() => triggerAnalysis(pendingRatio, pendingStrategy), 50);
-      }
     } finally {
       setIsAnalyzing(false);
       setCurrentAnalyzingRatio(null);
@@ -525,9 +478,10 @@ export function VideoEditor() {
   }, [
     videoFile, cropRegion, cropStrategy, isAnalyzing, currentAnalyzingRatio,
     hasAnalyzedRatio, getProjectId, cancelCurrentAnalysis, getCenterCropPosition,
-    runBlackBarDetection, runHardCutAnalysis, setBlackBars,
+    runBlackBarDetection, runHardCutAnalysis, setBlackBars, setSafeArea,
     setIsAnalyzing, setCurrentAnalyzingRatio, setAnalysisProgress,
     setAnalysisAbortController, setEditProject, addAnalyzedRatio, setCurrentEditProject,
+    setCropRegion,
   ]);
 
   useEffect(() => {
@@ -559,7 +513,8 @@ export function VideoEditor() {
       if (ratioChanged || strategyChanged) {
         previousRatioRef.current = newRatio;
         previousStrategyRef.current = cropStrategy;
-        setTimeout(() => triggerAnalysis(newRatio, cropStrategy), 100);
+        // Trigger immediately without delay for faster response
+        triggerAnalysis(newRatio, cropStrategy);
       }
     }
   }, [videoFile, targetPlatform, cropStrategy, setCropRegion, cropRegion, triggerAnalysis, safeArea]);
