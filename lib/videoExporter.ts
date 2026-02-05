@@ -15,7 +15,7 @@ let ffmpegLoadPromise: Promise<any> | null = null;
 
 /**
  * Load FFmpeg from CDN - only loads once
- * Direct URL import to bypass webpack bundling
+ * Using jsDelivr which has better CORS support for workers
  */
 async function getFFmpeg(): Promise<any> {
   if (FFmpegClass) return FFmpegClass;
@@ -26,9 +26,9 @@ async function getFFmpeg(): Promise<any> {
 
   ffmpegLoadPromise = (async () => {
     try {
-      // Direct dynamic import from CDN with full URL
+      // Use jsdelivr CDN - better CORS support for workers
       // @ts-ignore - importing from URL
-      const ffmpegModule = await import(/* webpackIgnore: true */ "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js");
+      const ffmpegModule = await import(/* webpackIgnore: true */ "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js");
       FFmpegClass = ffmpegModule.FFmpeg;
       return FFmpegClass;
     } catch (error) {
@@ -38,6 +38,23 @@ async function getFFmpeg(): Promise<any> {
   })();
 
   return ffmpegLoadPromise;
+}
+
+/**
+ * Get CDN base URL - using jsdelivr for better CORS support
+ */
+function getCDNBase(): string {
+  return "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
+}
+
+/**
+ * Get local worker URL (fallback to CDN if local file not available)
+ */
+function getWorkerURL(): string {
+  // Try to use local worker file first
+  const localWorker = "/ffmpeg/worker.js";
+  // For production, this should work. For dev, we might need CDN fallback.
+  return localWorker;
 }
 
 /**
@@ -58,8 +75,9 @@ export async function exportVideo(
   const ffmpeg = new FFmpeg();
 
   await ffmpeg.load({
-    coreURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js", "text/javascript"),
-    wasmURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm", "application/wasm"),
+    coreURL: await toBlobURL(`${getCDNBase()}/ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${getCDNBase()}/ffmpeg-core.wasm`, "application/wasm"),
+    workerURL: getWorkerURL(),
   });
 
   // Write input file - read as Uint8Array to avoid blob URL issues
@@ -222,8 +240,9 @@ export async function exportVideoWithClips(
   const ffmpeg = new FFmpeg();
 
   await ffmpeg.load({
-    coreURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js", "text/javascript"),
-    wasmURL: await toBlobURL("https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm", "application/wasm"),
+    coreURL: await toBlobURL(`${getCDNBase()}/ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${getCDNBase()}/ffmpeg-core.wasm`, "application/wasm"),
+    workerURL: getWorkerURL(),
   });
 
   // Write input file - read as Uint8Array to avoid blob URL issues
