@@ -32,20 +32,17 @@ const nextConfig: NextConfig = {
       fs: false,
     };
 
-    // Exclude @ffmpeg packages from bundling - loaded from CDN at runtime
-    config.externals = [...(config.externals || []), '@ffmpeg/ffmpeg', '@ffmpeg/util'];
+    // Only exclude @ffmpeg packages on server-side
+    // Client-side needs them for video export
+    if (isServer) {
+      config.externals = [...(config.externals || []), '@ffmpeg/ffmpeg', '@ffmpeg/util'];
+    }
 
-    // Allow webpackIgnore for dynamic imports from CDN
+    // Ignore warnings for dynamic imports
     config.module = config.module || {};
     (config.module as any).unknownContextCritical = false;
     (config.module as any).unknownContextRegExp = /^\.\/.*$/;
     (config.module as any).exprContextCritical = false;
-
-    // Ignore https:// imports in dynamic imports
-    config.ignoreWarnings = [
-      (warning: any) =>
-        warning.message.includes("Critical dependency: the request of a dependency is an expression"),
-    ];
 
     return config;
   },

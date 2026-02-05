@@ -1,42 +1,14 @@
 import { CropRegion, CropStrategy, VideoClip } from "./types";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 /**
  * Simple toBlobURL implementation using fetch
  */
-async function toBlobURL(url: string, _type: string): Promise<string> {
+async function toBlobURLLocal(url: string, _type: string): Promise<string> {
   const response = await fetch(url);
   const blob = await response.blob();
   return URL.createObjectURL(blob);
-}
-
-// Cache FFmpeg class after loading
-let FFmpegClass: any = null;
-let ffmpegLoadPromise: Promise<any> | null = null;
-
-/**
- * Load FFmpeg from CDN - only loads once
- */
-async function getFFmpeg(): Promise<any> {
-  if (FFmpegClass) return FFmpegClass;
-
-  if (ffmpegLoadPromise) {
-    return ffmpegLoadPromise;
-  }
-
-  ffmpegLoadPromise = (async () => {
-    try {
-      // Use jsdelivr CDN
-      // @ts-ignore - importing from URL
-      const ffmpegModule = await import(/* webpackIgnore: true */ "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js");
-      FFmpegClass = ffmpegModule.FFmpeg;
-      return FFmpegClass;
-    } catch (error) {
-      console.error("Failed to load FFmpeg:", error);
-      throw new Error("Failed to load FFmpeg. Please refresh and try again.");
-    }
-  })();
-
-  return ffmpegLoadPromise;
 }
 
 /**
@@ -47,10 +19,10 @@ function getLocalURL(filename: string): string {
 }
 
 /**
- * Get blob URL for core/wasm files (worker needs local path)
+ * Get blob URL for core/wasm files
  */
 async function getBlobURLForFile(filename: string): Promise<string> {
-  return await toBlobURL(getLocalURL(filename), "application/javascript");
+  return await toBlobURLLocal(getLocalURL(filename), "application/javascript");
 }
 
 /**
@@ -65,8 +37,6 @@ export async function exportVideo(
   strategy: CropStrategy = "smart-crop",
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const FFmpeg = await getFFmpeg();
-
   // Create a new FFmpeg instance each time
   const ffmpeg = new FFmpeg();
 
@@ -232,8 +202,6 @@ export async function exportVideoWithClips(
   strategy: CropStrategy = "smart-crop",
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const FFmpeg = await getFFmpeg();
-
   // Create a new FFmpeg instance each time
   const ffmpeg = new FFmpeg();
 
