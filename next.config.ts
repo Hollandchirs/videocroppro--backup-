@@ -26,24 +26,11 @@ const nextConfig: NextConfig = {
       }
     ];
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
     };
-
-    // Only exclude @ffmpeg packages on server-side
-    // Client-side needs them for video export
-    if (isServer) {
-      config.externals = [...(config.externals || []), '@ffmpeg/ffmpeg', '@ffmpeg/util'];
-    }
-
-    // Ignore warnings for dynamic imports
-    config.module = config.module || {};
-    (config.module as any).unknownContextCritical = false;
-    (config.module as any).unknownContextRegExp = /^\.\/.*$/;
-    (config.module as any).exprContextCritical = false;
-
     return config;
   },
 };

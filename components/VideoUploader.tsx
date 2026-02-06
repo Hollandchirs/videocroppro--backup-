@@ -20,8 +20,8 @@ export function VideoUploader({ onVideoLoaded }: VideoUploaderProps) {
         return;
       }
 
-      if (file.size > 500 * 1024 * 1024) {
-        alert("Video size must be less than 500MB");
+      if (file.size > 1024 * 1024 * 1024) {
+        alert("Video size must be less than 1GB");
         return;
       }
 
@@ -106,7 +106,7 @@ export function VideoUploader({ onVideoLoaded }: VideoUploaderProps) {
               Drop your video here
             </p>
             <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-6">
-              MP4, MOV, WebM • Up to 500MB
+              MP4, MOV, WebM • Up to 1GB
             </p>
             <label className="inline-block px-6 py-3 bg-[#C2F159] text-neutral-900 rounded-full font-medium cursor-pointer hover:opacity-90 transition-opacity shadow-md hover:shadow-lg">
               Choose Video

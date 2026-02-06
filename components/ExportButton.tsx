@@ -3,28 +3,23 @@
 import { useState } from "react";
 import { useVideoStore } from "@/lib/store";
 import { getPlatformById } from "@/lib/platforms";
-import { exportVideoWithClips } from "@/lib/videoExporter";
 import { ExportProgressModal } from "./ExportProgressModal";
 
-interface DownloadUrl {
-  platformId: string;
-  url: string;
-  filename: string;
-}
+// Dynamic import for FFmpeg to avoid SSR issues
+const loadVideoExporter = () => import("@/lib/videoExporter");
 
 export function ExportButton() {
   const { videoFile, currentClips, selectedPlatforms, cropStrategy, isProcessing, setIsProcessing } =
     useVideoStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [exportStatus, setExportStatus] = useState<"processing" | "uploading" | "completed" | "error">("processing");
+  const [exportStatus, setExportStatus] = useState<"processing" | "completed" | "error">("processing");
   const [exportProgress, setExportProgress] = useState<{
     current: number;
     total: number;
     platformId: string;
     percent: number;
   } | null>(null);
-  const [downloadUrls, setDownloadUrls] = useState<DownloadUrl[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleExport = async () => {
@@ -35,10 +30,12 @@ export function ExportButton() {
     setIsModalOpen(true);
     setExportStatus("processing");
     setExportProgress(null);
-    setDownloadUrls([]);
     setErrorMessage("");
 
     try {
+      // Dynamically import video exporter to avoid SSR issues
+      const { exportVideoWithClips, downloadMultipleFiles } = await loadVideoExporter();
+
       // Export for each platform using current clips
       const results = await Promise.all(
         selectedPlatforms.map(async (platformId, index) => {
@@ -72,47 +69,16 @@ export function ExportButton() {
             }
           );
 
-          return { platformId, blob };
+          const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
+          const filename = `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`;
+
+          return { blob, filename };
         })
       );
 
-      // Switch to uploading status
-      setExportStatus("uploading");
-      setExportProgress(null);
-
-      // Upload all videos to storage
-      const uploadPromises = results.map(async ({ platformId, blob }) => {
-        const platform = getPlatformById(platformId);
-        const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
-        const filename = `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`;
-
-        // Create form data
-        const formData = new FormData();
-        formData.append("file", blob, filename);
-        formData.append("filename", filename);
-
-        // Upload to API
-        const response = await fetch("/api/export", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Upload failed");
-        }
-
-        const data = await response.json();
-        return {
-          platformId,
-          url: data.downloadUrl,
-          filename,
-        };
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setDownloadUrls(uploadedUrls);
+      // Download all videos directly to browser
       setExportStatus("completed");
+      await downloadMultipleFiles(results);
     } catch (error) {
       console.error("Export failed:", error);
       setErrorMessage(error instanceof Error ? error.message : "Export failed. Please try again.");
@@ -165,7 +131,7 @@ export function ExportButton() {
           )}
         </button>
         <p className="text-sm text-neutral-500 dark:text-neutral-500 mt-3">
-          Export to cloud storage for easy download
+          Download directly to your browser
         </p>
       </div>
 
@@ -174,12 +140,10 @@ export function ExportButton() {
         platforms={selectedPlatforms}
         progress={exportProgress}
         status={exportStatus}
-        downloadUrls={downloadUrls}
         error={errorMessage}
         onClose={() => {
           setIsModalOpen(false);
           setExportStatus("processing");
-          setDownloadUrls([]);
         }}
       />
     </>

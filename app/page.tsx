@@ -8,13 +8,9 @@ import { VideoEditor } from "@/components/VideoEditor";
 import { ExportProgressModal } from "@/components/ExportProgressModal";
 import { useVideoStore } from "@/lib/store";
 import { getPlatformById } from "@/lib/platforms";
-import { exportVideoWithClips } from "@/lib/videoExporter";
 
-interface DownloadUrl {
-  platformId: string;
-  url: string;
-  filename: string;
-}
+// Dynamic import for FFmpeg to avoid SSR issues
+const loadVideoExporter = () => import("@/lib/videoExporter");
 
 export default function HomePage() {
   const [showEditor, setShowEditor] = useState(false);
@@ -23,14 +19,13 @@ export default function HomePage() {
 
   // Export modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportStatus, setExportStatus] = useState<"processing" | "uploading" | "completed" | "error">("processing");
+  const [exportStatus, setExportStatus] = useState<"processing" | "completed" | "error">("processing");
   const [exportProgress, setExportProgress] = useState<{
     current: number;
     total: number;
     platformId: string;
     percent: number;
   } | null>(null);
-  const [downloadUrls, setDownloadUrls] = useState<DownloadUrl[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
 
   // Check if export is ready (has video, has selected platforms, has generated clips, not analyzing)
@@ -51,11 +46,13 @@ export default function HomePage() {
     setIsExportModalOpen(true);
     setExportStatus("processing");
     setExportProgress(null);
-    setDownloadUrls([]);
     setErrorMessage("");
     setIsProcessing(true);
 
     try {
+      // Dynamically import video exporter to avoid SSR issues
+      const { exportVideoWithClips, downloadMultipleFiles } = await loadVideoExporter();
+
       // Export for each platform using current clips
       const results = await Promise.all(
         selectedPlatforms.map(async (platformId, index) => {
@@ -87,47 +84,16 @@ export default function HomePage() {
             }
           );
 
-          return { platformId, blob };
+          const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
+          const filename = `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`;
+
+          return { blob, filename };
         })
       );
 
-      // Switch to uploading status
-      setExportStatus("uploading");
-      setExportProgress(null);
-
-      // Upload all videos to storage
-      const uploadPromises = results.map(async ({ platformId, blob }) => {
-        const platform = getPlatformById(platformId);
-        const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
-        const filename = `${baseName}_${platform?.name.replace(/\s+/g, "_").toLowerCase()}.mp4`;
-
-        // Create form data
-        const formData = new FormData();
-        formData.append("file", blob, filename);
-        formData.append("filename", filename);
-
-        // Upload to API
-        const response = await fetch("/api/export", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Upload failed");
-        }
-
-        const data = await response.json();
-        return {
-          platformId,
-          url: data.downloadUrl,
-          filename,
-        };
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setDownloadUrls(uploadedUrls);
+      // Download all videos directly to browser
       setExportStatus("completed");
+      await downloadMultipleFiles(results);
     } catch (error) {
       console.error("Export failed:", error);
       setErrorMessage(error instanceof Error ? error.message : "Export failed. Please try again.");
@@ -270,12 +236,10 @@ export default function HomePage() {
         platforms={selectedPlatforms}
         progress={exportProgress}
         status={exportStatus}
-        downloadUrls={downloadUrls}
         error={errorMessage}
         onClose={() => {
           setIsExportModalOpen(false);
           setExportStatus("processing");
-          setDownloadUrls([]);
         }}
       />
 
@@ -352,7 +316,7 @@ export default function HomePage() {
               },
               {
                 q: "What video formats are supported?",
-                a: "We support MP4, MOV, WebM, and most common video formats. Videos up to 500MB.",
+                a: "We support MP4, MOV, WebM, and most common video formats. Videos up to 1GB.",
               },
               {
                 q: "Do you upload my videos?",
