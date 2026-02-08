@@ -1,0 +1,10 @@
+name = "video-processor"
+main = "api/ffmpeg-worker/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Environment variables
+
+[[r2_buckets]]
+binding = "VIDEOS"
+bucket_name = "processed-videos"

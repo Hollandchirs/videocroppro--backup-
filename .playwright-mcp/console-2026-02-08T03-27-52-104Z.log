@@ -1,0 +1,1 @@
+[    6772ms] [WARNING] In React 18, SSRProvider is not necessary and is a noop. You can remove it from your app. @ https://railway.com/_next/static/chunks/pages/_app-8b75eef17f7bcf8d.js:7

@@ -1,41 +1,16 @@
-/**
- * Server-side Video Export System
- *
- * Architecture:
- * - Vercel Blob: Storage (upload/download videos)
- * - Railway: Video processing service with FFmpeg
- */
+import { put } from '@vercel/blob';
+import { VideoClip, CropStrategy } from './types';
 
-import { put, del } from '@vercel/blob';
-
-// ============================================================
-// CONFIG
-// ============================================================
-
-const PROCESSOR_SERVICE_URL = process.env.PROCESSOR_SERVICE_URL || 'http://localhost:3001';
-
-// ============================================================
-// TYPES
-// ============================================================
-
-export interface VideoClip {
-  startTime: number;
-  endTime: number;
-  cropPosition: { x: number; y: number };
-  cropScale?: number;
-  useFullFrame?: boolean;
-}
-
-export interface ExportRequest {
-  videoUrl: string;           // Vercel Blob URL
+interface ExportRequest {
+  videoUrl: string;
   clips: VideoClip[];
   width: number;
   height: number;
-  strategy: 'smart-crop' | 'center-crop';
+  strategy: CropStrategy;
   sourceRegion?: { width: number; height: number };
 }
 
-export interface ExportJob {
+interface JobStatus {
   jobId: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: number;
@@ -43,141 +18,84 @@ export interface ExportJob {
   error?: string;
 }
 
-// ============================================================
-// STORAGE (Vercel Blob)
-// ============================================================
-
-/**
- * Upload video to Vercel Blob
- */
-export async function uploadVideo(file: File): Promise<string> {
-  const blob = await put(file.name, file, {
-    access: 'public',
-  });
-
+// Upload video to Vercel Blob
+async function uploadVideo(file: File): Promise<string> {
+  const blob = await put(file.name, file, { access: 'public' });
   return blob.url;
 }
 
-/**
- * Delete video from Vercel Blob
- */
-export async function deleteVideo(url: string): Promise<void> {
-  try {
-    await del(url);
-  } catch (e) {
-    console.error('Failed to delete video:', e);
-  }
-}
-
-// ============================================================
-// VIDEO PROCESSING (Railway Service)
-// ============================================================
-
-/**
- * Submit export job to processing service
- */
-export async function submitExportJob(request: ExportRequest): Promise<string> {
-  const response = await fetch(`${PROCESSOR_SERVICE_URL}/export`, {
+// Submit export job to Railway service
+async function submitExportJob(request: ExportRequest): Promise<string> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_PROCESSOR_SERVICE_URL}/export`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to submit job: ${response.statusText}`);
-  }
-
+  if (!response.ok) throw new Error(`Failed to submit job: ${response.statusText}`);
   const { jobId } = await response.json();
   return jobId;
 }
 
-/**
- * Poll job status
- */
-export async function getJobStatus(jobId: string): Promise<ExportJob> {
-  const response = await fetch(`${PROCESSOR_SERVICE_URL}/status/${jobId}`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to get status: ${response.statusText}`);
-  }
-
+// Poll job status from Railway service
+async function getJobStatus(jobId: string): Promise<JobStatus> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_PROCESSOR_SERVICE_URL}/status/${jobId}`);
+  if (!response.ok) throw new Error(`Failed to get status: ${response.statusText}`);
   return await response.json();
 }
 
-/**
- * Wait for job completion with polling
- */
-export async function waitForJob(
+// Wait for job completion with progress updates
+async function waitForJob(
   jobId: string,
   onProgress?: (progress: number) => void,
   abortSignal?: AbortSignal
 ): Promise<string> {
-  const POLL_INTERVAL = 1000; // 1 second
-
+  const POLL_INTERVAL = 1000;
   return new Promise((resolve, reject) => {
     const checkStatus = async () => {
       if (abortSignal?.aborted) {
         reject(new DOMException('Aborted', 'AbortError'));
         return;
       }
-
       try {
         const job = await getJobStatus(jobId);
-
-        if (onProgress) {
-          onProgress(job.progress);
-        }
-
-        if (job.status === 'completed') {
-          resolve(job.outputUrl!);
-        } else if (job.status === 'failed') {
-          reject(new Error(job.error || 'Export failed'));
-        } else {
-          // Continue polling
-          setTimeout(checkStatus, POLL_INTERVAL);
-        }
+        if (onProgress) onProgress(job.progress);
+        if (job.status === 'completed') resolve(job.outputUrl!);
+        else if (job.status === 'failed') reject(new Error(job.error || 'Export failed'));
+        else setTimeout(checkStatus, POLL_INTERVAL);
       } catch (e) {
         reject(e);
       }
     };
-
     checkStatus();
   });
 }
 
-// ============================================================
-// MAIN EXPORT FUNCTION
-// ============================================================
+// Download processed video from Vercel Blob
+async function downloadVideo(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to download: ${response.statusText}`);
+  return await response.blob();
+}
 
-/**
- * Server-side video export
- * Fast, reliable, with perfect audio-video sync
- */
+// Main export function that orchestrates the entire process
 export async function serverSideExport(
   videoFile: File,
   clips: VideoClip[],
   width: number,
   height: number,
-  strategy: 'smart-crop' | 'center-crop' = 'smart-crop',
+  strategy: CropStrategy = 'smart-crop',
   onProgress?: (percent: number) => void,
   abortSignal?: AbortSignal,
   sourceRegion?: { width: number; height: number }
 ): Promise<Blob> {
-  // Step 1: Upload video to Vercel Blob
+  // 1. Upload video to Vercel Blob
   if (onProgress) onProgress(5);
-
   const videoUrl = await uploadVideo(videoFile);
-  console.log('[Server Export] Video uploaded:', videoUrl);
-
-  if (abortSignal?.aborted) {
-    await deleteVideo(videoUrl);
-    throw new DOMException('Aborted', 'AbortError');
-  }
+  if (abortSignal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
   try {
-    // Step 2: Submit export job
+    // 2. Submit export job to Railway service
     if (onProgress) onProgress(10);
-
     const jobId = await submitExportJob({
       videoUrl,
       clips,
@@ -186,35 +104,20 @@ export async function serverSideExport(
       strategy,
       sourceRegion,
     });
-    console.log('[Server Export] Job submitted:', jobId);
 
-    // Step 3: Wait for completion
+    // 3. Wait for job completion with progress updates
     const outputUrl = await waitForJob(jobId, (progress) => {
       if (onProgress) onProgress(10 + Math.round(progress * 0.8));
     }, abortSignal);
 
-    console.log('[Server Export] Job completed:', outputUrl);
-
-    // Step 4: Download result
+    // 4. Download the processed video
     if (onProgress) onProgress(95);
-
-    const response = await fetch(outputUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download output: ${response.statusText}`);
-    }
-
-    const blob = await response.blob();
-
-    // Step 5: Cleanup
-    await deleteVideo(videoUrl);
-    // Note: output URL cleanup handled by processor service TTL
-
+    const blob = await downloadVideo(outputUrl);
     if (onProgress) onProgress(100);
-
     return blob;
   } catch (e) {
-    // Cleanup on error
-    await deleteVideo(videoUrl);
+    // On failure, the uploaded video will be cleaned up by Vercel Blob's lifecycle policies
+    // Optionally implement explicit cleanup here if needed
     throw e;
   }
 }

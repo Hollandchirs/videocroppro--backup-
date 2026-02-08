@@ -31,22 +31,11 @@ export function ExportProgressModal({
       <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-              {status === "processing" && "Processing Video..."}
-              {status === "completed" && "Export Complete!"}
-              {status === "error" && "Export Failed"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
-              aria-label="Close"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+            {status === "processing" && "Processing Video..."}
+            {status === "completed" && "Export Complete!"}
+            {status === "error" && "Export Failed"}
+          </h2>
         </div>
 
         {/* Content */}
@@ -62,14 +51,13 @@ export function ExportProgressModal({
               {/* Platform being processed */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#C2F159] to-[#A7E635] flex items-center justify-center text-neutral-900 font-semibold text-sm">
-                  {progress.current}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-neutral-900 dark:text-neutral-100">
-                    {getPlatformById(progress.platformId)?.name || `Platform ${progress.current}`}
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    of {progress.total} platform{progress.total > 1 ? "s" : ""}
+                    {getPlatformById(progress.platformId)?.name || "Exporting"}
                   </p>
                 </div>
               </div>
@@ -101,10 +89,10 @@ export function ExportProgressModal({
                   </svg>
                 </div>
                 <p className="text-neutral-900 dark:text-neutral-100 font-medium mb-2">
-                  Videos downloaded successfully!
+                  Video downloaded successfully!
                 </p>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  {platforms.length} video{platforms.length > 1 ? "s have" : " has"} been saved to your device
+                  Your video has been saved to your device
                 </p>
               </div>
             </div>
