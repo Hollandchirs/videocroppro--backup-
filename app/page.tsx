@@ -153,7 +153,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <span className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                VideoCrop<span className="text-[#C2F159]">.pro</span>
+                <span className="text-[#C2F159]">Free</span>cropper
               </span>
             </button>
 
