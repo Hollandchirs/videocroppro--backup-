@@ -15,7 +15,7 @@ export function Footer() {
               </svg>
             </div>
             <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-              VideoCrop<span className="text-[#C2F159]">.pro</span>
+              <span className="text-[#C2F159]">Free</span>cropper
             </span>
           </div>
 
@@ -33,7 +33,7 @@ export function Footer() {
           </div>
 
           <p className="text-xs text-neutral-500 dark:text-neutral-500">
-            © {new Date().getFullYear()} VideoCrop.pro · Built for creators
+            © {new Date().getFullYear()} Freecropper · Built for creators
           </p>
         </div>
       </div>
