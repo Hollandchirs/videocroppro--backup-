@@ -8,17 +8,47 @@ const FFMPEG_BASE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
 let sharedFFmpeg: FFmpeg | null = null;
 let ffmpegLoadPromise: Promise<FFmpeg> | null = null;
 
+/**
+ * Terminate current FFmpeg operation and reset the instance
+ * This allows starting fresh on the next export
+ */
+export function terminateCurrentOperation() {
+  if (sharedFFmpeg) {
+    console.log("[FFmpeg] Terminating current operation...");
+    try {
+      sharedFFmpeg.terminate();
+    } catch (e) {
+      console.warn("[FFmpeg] Terminate error:", e);
+    }
+    sharedFFmpeg = null;
+  }
+  ffmpegLoadPromise = null;
+  console.log("[FFmpeg] Reset complete");
+}
+
 async function getFFmpeg(): Promise<FFmpeg> {
+  // Check if FFmpeg was terminated and needs to be reloaded
+  if (sharedFFmpeg && !sharedFFmpeg.loaded) {
+    console.log("[FFmpeg] Instance was terminated, creating new one");
+    sharedFFmpeg = null;
+    ffmpegLoadPromise = null;
+  }
+
   if (sharedFFmpeg) return sharedFFmpeg;
   if (ffmpegLoadPromise) return ffmpegLoadPromise;
 
   ffmpegLoadPromise = (async () => {
     const ffmpeg = new FFmpeg();
     const baseURL = FFMPEG_BASE_URL;
+
+    console.log("[FFmpeg] Loading core...");
+
     await ffmpeg.load({
       coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
       wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
     });
+
+    console.log("[FFmpeg] Loaded successfully");
     sharedFFmpeg = ffmpeg;
     return ffmpeg;
   })();
@@ -32,15 +62,14 @@ interface PlatformTarget {
   height: number;
 }
 
-interface SourceRegion {
-  width: number;
-  height: number;
-}
-
 /**
  * Batch export: encode ONCE per unique resolution, reuse blob for all same-size platforms.
  * Since platforms are selected by aspect ratio group, they all share the same (width, height)
  * and the same clips/crops → the output is identical. Only encode once.
+ *
+ * IMPORTANT: cropWidth/cropHeight are the ACTUAL dimensions of the crop region from the source video.
+ * These match what the user sees in preview (cropRegion.width/height).
+ * The clip.cropPosition.x/y are relative to the original video top-left corner.
  */
 export async function batchExportWithClips(
   videoFile: File,
@@ -48,7 +77,7 @@ export async function batchExportWithClips(
   platforms: PlatformTarget[],
   strategy: CropStrategy = "smart-crop",
   onProgress?: (percent: number) => void,
-  sourceRegion?: SourceRegion
+  cropRegion?: { width: number; height: number }  // Actual crop dimensions from preview
 ): Promise<Array<{ platformId: string; blob: Blob }>> {
   // Group platforms by unique (width, height) - encode once per unique size
   const sizeKey = (w: number, h: number) => `${w}x${h}`;
@@ -67,12 +96,21 @@ export async function batchExportWithClips(
   const uniqueTargets = Array.from(uniqueSizes.values());
   const ffmpeg = await getFFmpeg();
 
+  // Clean up any leftover files from previous runs
+  try {
+    await ffmpeg.deleteFile("input.mp4");
+    for (let i = 0; i < 10; i++) {
+      try { await ffmpeg.deleteFile(`output_${i}.mp4`); } catch { /* ok */ }
+    }
+  } catch { /* ok */ }
+
   // Write input once
   await ffmpeg.writeFile("input.mp4", await fetchFile(videoFile));
 
-  // Source crop region from preview (for smart crop)
-  const srcCropWidth = sourceRegion?.width || uniqueTargets[0].width;
-  const srcCropHeight = sourceRegion?.height || uniqueTargets[0].height;
+  // Crop region dimensions - these are the actual dimensions of the crop area
+  // that the user sees in preview. If not provided, fall back to output dimensions.
+  const actualCropWidth = cropRegion?.width ?? uniqueTargets[0].width;
+  const actualCropHeight = cropRegion?.height ?? uniqueTargets[0].height;
 
   // Build ONE ffmpeg command for unique sizes only
   const N = uniqueTargets.length;
@@ -90,9 +128,10 @@ export async function batchExportWithClips(
       if (strategy === "center-crop") {
         filterComplex = `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[out0]`;
       } else {
-        // Smart crop: first crop to source region, then scale to output size
-        if (srcCropWidth !== width || srcCropHeight !== height) {
-          filterComplex = `[0:v]crop=${srcCropWidth}:${srcCropHeight}:${cropX}:${cropY},scale=${width}:${height}[out0]`;
+        // Smart crop: crop to actual crop dimensions, then scale to output size
+        // actualCropWidth/Height match the preview cropRegion dimensions
+        if (actualCropWidth !== width || actualCropHeight !== height) {
+          filterComplex = `[0:v]crop=${actualCropWidth}:${actualCropHeight}:${cropX}:${cropY},scale=${width}:${height}[out0]`;
         } else {
           filterComplex = `[0:v]crop=${width}:${height}:${cropX}:${cropY}[out0]`;
         }
@@ -105,9 +144,9 @@ export async function batchExportWithClips(
         if (strategy === "center-crop") {
           filterComplex += `[s${i}]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[out${i}]`;
         } else {
-          // Smart crop: first crop to source region, then scale to output size
-          if (srcCropWidth !== width || srcCropHeight !== height) {
-            filterComplex += `[s${i}]crop=${srcCropWidth}:${srcCropHeight}:${cropX}:${cropY},scale=${width}:${height}[out${i}]`;
+          // Smart crop: crop to actual crop dimensions, then scale to output size
+          if (actualCropWidth !== width || actualCropHeight !== height) {
+            filterComplex += `[s${i}]crop=${actualCropWidth}:${actualCropHeight}:${cropX}:${cropY},scale=${width}:${height}[out${i}]`;
           } else {
             filterComplex += `[s${i}]crop=${width}:${height}:${cropX}:${cropY}[out${i}]`;
           }
@@ -134,9 +173,9 @@ export async function batchExportWithClips(
         if (strategy === "center-crop") {
           filterComplex += `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
         } else {
-          // Smart crop: first crop to source region, then scale to output size
-          if (srcCropWidth !== width || srcCropHeight !== height) {
-            filterComplex += `crop=${srcCropWidth}:${srcCropHeight}:${cropX}:${cropY},scale=${width}:${height}`;
+          // Smart crop: crop to actual crop dimensions, then scale to output size
+          if (actualCropWidth !== width || actualCropHeight !== height) {
+            filterComplex += `crop=${actualCropWidth}:${actualCropHeight}:${cropX}:${cropY},scale=${width}:${height}`;
           } else {
             filterComplex += `crop=${width}:${height}:${cropX}:${cropY}`;
           }
@@ -156,9 +195,8 @@ export async function batchExportWithClips(
     command.push(
       "-map", `[out${i}]`, "-map", "0:a?",
       "-c:v", "libx264",
-      "-preset", "veryfast",  // Slightly slower than ultrafast but better quality
-      "-crf", "28",  // Higher CRF = faster encoding (quality vs speed trade-off)
-      "-tune", "fastdecode",  // Optimize for fast decoding
+      "-preset", "ultrafast",
+      "-crf", "18",
       "-pix_fmt", "yuv420p",
       "-c:a", "copy",
       "-movflags", "+faststart",
@@ -166,14 +204,19 @@ export async function batchExportWithClips(
     );
   }
 
-  const progressHandler = ({ progress }: { progress: number }) => {
+  console.log("[FFmpeg] Command:", command.join(" "));
+
+  const progressHandler = ({ progress, time }: { progress: number; time: number }) => {
+    console.log(`[FFmpeg] Progress: ${(progress * 100).toFixed(1)}% time=${time}`);
     if (onProgress) {
       onProgress(Math.round(progress * 100));
     }
   };
   ffmpeg.on("progress", progressHandler);
 
+  const startTime = performance.now();
   await ffmpeg.exec(command);
+  console.log(`[FFmpeg] Encoding finished in ${((performance.now() - startTime) / 1000).toFixed(1)}s`);
 
   ffmpeg.off("progress", progressHandler);
 
@@ -195,6 +238,31 @@ export async function batchExportWithClips(
     platformId: p.platformId,
     blob: blobBySize.get(sizeKey(p.width, p.height))!,
   }));
+}
+
+/**
+ * Export video with smart clips
+ * Simplified version for single platform export
+ */
+export async function exportVideoWithClips(
+  videoFile: File,
+  clips: VideoClip[],
+  outputWidth: number,
+  outputHeight: number,
+  strategy: CropStrategy = "smart-crop",
+  onProgress?: (progress: number) => void,
+  cropRegion?: { width: number; height: number }  // Actual crop dimensions from preview
+): Promise<Blob> {
+  // Use batch export with single platform
+  const results = await batchExportWithClips(
+    videoFile,
+    clips,
+    [{ platformId: "default", width: outputWidth, height: outputHeight }],
+    strategy,
+    onProgress,
+    cropRegion
+  );
+  return results[0].blob;
 }
 
 /**

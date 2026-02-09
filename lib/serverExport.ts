@@ -1,4 +1,3 @@
-import { upload } from '@vercel/blob/client';
 import { VideoClip, CropStrategy } from './types';
 
 interface ExportRequest {
@@ -7,7 +6,7 @@ interface ExportRequest {
   width: number;
   height: number;
   strategy: CropStrategy;
-  sourceRegion?: { width: number; height: number };
+  cropRegion?: { width: number; height: number };  // Actual crop dimensions from preview
 }
 
 interface JobStatus {
@@ -20,13 +19,25 @@ interface JobStatus {
 
 const PROCESSOR_URL = process.env.NEXT_PUBLIC_PROCESSOR_SERVICE_URL;
 
-// Upload video to Vercel Blob via client upload
-async function uploadVideo(file: File): Promise<string> {
-  const blob = await upload(file.name, file, {
-    access: 'public',
-    handleUploadUrl: '/api/upload',
+// Upload video to Vercel Blob via API route (used for background upload)
+export async function uploadVideoToBlob(file: File): Promise<string> {
+  console.log(`[Upload] Starting background upload: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
   });
-  return blob.url;
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Upload failed: ${response.status}`);
+  }
+
+  const { url } = await response.json();
+  console.log('[Upload] Background upload complete:', url);
+  return url;
 }
 
 // Submit export job to Railway service
@@ -85,27 +96,23 @@ async function downloadVideo(url: string): Promise<Blob> {
   return await response.blob();
 }
 
-// Main export function
+// Main export function - accepts pre-uploaded videoUrl to skip upload step
 export async function serverSideExport(
-  videoFile: File,
+  videoUrl: string,
   clips: VideoClip[],
   width: number,
   height: number,
   strategy: CropStrategy = 'smart-crop',
   onProgress?: (percent: number) => void,
   abortSignal?: AbortSignal,
-  sourceRegion?: { width: number; height: number }
+  cropRegion?: { width: number; height: number }  // Actual crop dimensions from preview
 ): Promise<Blob> {
   if (!PROCESSOR_URL) {
     throw new Error('NEXT_PUBLIC_PROCESSOR_SERVICE_URL is not configured');
   }
 
-  // 1. Upload video to Vercel Blob
-  if (onProgress) onProgress(5);
-  const videoUrl = await uploadVideo(videoFile);
-  if (abortSignal?.aborted) throw new DOMException('Aborted', 'AbortError');
-
-  // 2. Submit export job to Railway service
+  // Video already uploaded — submit job directly
+  console.log('[Export] Video already on server, submitting job...');
   if (onProgress) onProgress(10);
   const jobId = await submitExportJob({
     videoUrl,
@@ -113,15 +120,18 @@ export async function serverSideExport(
     width,
     height,
     strategy,
-    sourceRegion,
+    cropRegion,
   });
+  console.log('[Export] Job submitted:', jobId);
 
-  // 3. Wait for job completion with progress updates
+  // Wait for job completion with progress updates
   const outputUrl = await waitForJob(jobId, (progress) => {
+    // Map Railway progress (0-100) to our range (10-90)
     if (onProgress) onProgress(10 + Math.round(progress * 0.8));
   }, abortSignal);
 
-  // 4. Download the processed video
+  // Download the processed video
+  console.log('[Export] Downloading result...');
   if (onProgress) onProgress(95);
   const blob = await downloadVideo(outputUrl);
   if (onProgress) onProgress(100);

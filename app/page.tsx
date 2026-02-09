@@ -15,7 +15,7 @@ const loadVideoExporter = () => import("@/lib/videoExporter");
 export default function HomePage() {
   const [showEditor, setShowEditor] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing, currentClips, cropStrategy, cropRegion, isProcessing, setIsProcessing } = useVideoStore();
+  const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing, currentClips, cropStrategy, isProcessing, setIsProcessing, cropRegion } = useVideoStore();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Export modal state
@@ -61,7 +61,6 @@ export default function HomePage() {
       const firstPlatformId = selectedPlatforms[0];
       const platform = getPlatformById(firstPlatformId);
       if (!platform) throw new Error(`Unknown platform: ${firstPlatformId}`);
-      const platforms = [{ platformId: firstPlatformId, width: platform.width, height: platform.height }];
 
       setExportProgress({
         current: 1,
@@ -72,6 +71,7 @@ export default function HomePage() {
 
       const progressCallback = (percent: number) => {
         if (abortController.signal.aborted) return;
+        console.log("[Export] Progress:", percent);
         setExportProgress({
           current: 1,
           total: 1,
@@ -80,51 +80,39 @@ export default function HomePage() {
         });
       };
 
-      let blob: Blob;
+      // FFmpeg WASM local processing
+      console.log("[Export] Loading exporter...");
+      const { exportVideoWithClips, downloadBlob } = await loadVideoExporter();
+      console.log("[Export] Starting export...");
 
-      // Try server-side FFmpeg via Railway service (fast, correct AV sync)
-      try {
-        const { serverSideExport } = await import("@/lib/serverExport");
-        blob = await serverSideExport(
-          videoFile.file,
-          currentClips,
-          platform.width,
-          platform.height,
-          cropStrategy || "smart-crop",
-          progressCallback,
-          abortController.signal,
-          cropRegion ? { width: cropRegion.width, height: cropRegion.height } : undefined
-        );
-      } catch (serverError) {
-        if (abortController.signal.aborted) return;
-        console.warn("[Export] Server FFmpeg failed, falling back to WASM:", serverError);
+      // Prepare crop region dimensions for export - these must match preview
+      const cropRegionForExport = cropRegion ? { width: cropRegion.width, height: cropRegion.height } : undefined;
 
-        // Fallback: FFmpeg WASM (works everywhere, slower)
-        const { batchExportWithClips } = await loadVideoExporter();
-        const results = await batchExportWithClips(
-          videoFile.file,
-          currentClips,
-          platforms,
-          cropStrategy || "smart-crop",
-          progressCallback,
-          cropRegion ? { width: cropRegion.width, height: cropRegion.height } : undefined
-        );
-        blob = results[0].blob;
-      }
+      const blob = await exportVideoWithClips(
+        videoFile.file,
+        currentClips,
+        platform.width,
+        platform.height,
+        cropStrategy || "smart-crop",
+        progressCallback,
+        cropRegionForExport
+      );
+      console.log("[Export] Export complete, downloading...");
 
+      // Check if aborted during export
       if (abortController.signal.aborted) return;
 
-      // Download single file
-      const { downloadBlob } = await loadVideoExporter();
+      // Download file
       const baseName = videoFile.file.name.replace(/\.[^/.]+$/, "");
       const filename = `${baseName}_${platform.name.replace(/\s+/g, "_").toLowerCase()}.mp4`;
 
       setExportStatus("completed");
+      setExportProgress({ current: 1, total: 1, platformId: firstPlatformId, percent: 100 });
       downloadBlob(blob, filename);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       if (abortController.signal.aborted) return;
-      console.error("Export failed:", error);
+      console.error("[Export] Error:", error);
       setErrorMessage(error instanceof Error ? error.message : "Export failed. Please try again.");
       setExportStatus("error");
     } finally {
@@ -268,8 +256,18 @@ export default function HomePage() {
         progress={exportProgress}
         status={exportStatus}
         error={errorMessage}
-        onClose={() => {
+        onClose={async () => {
+          // Abort any ongoing export
           abortControllerRef.current?.abort();
+
+          // Terminate FFmpeg to stop background processing
+          try {
+            const { terminateCurrentOperation } = await loadVideoExporter();
+            terminateCurrentOperation();
+          } catch (e) {
+            console.warn("Failed to terminate FFmpeg:", e);
+          }
+
           setIsExportModalOpen(false);
           setExportStatus("processing");
           setIsExporting(false);
