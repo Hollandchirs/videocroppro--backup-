@@ -152,6 +152,14 @@ export function VideoEditor() {
     const frameAnalyses: FrameAnalysis[] = [];
     const totalSamples = Math.ceil(videoFile.duration / samplingInterval);
 
+    // Helper to check if a position is centered (no face detected fallback)
+    const isCenteredPosition = (pos: { x: number; y: number }) => {
+      const centerX = (currentSafeArea!.width - effectiveCropRegion.width) / 2 + currentSafeArea!.x;
+      const centerY = (currentSafeArea!.height - effectiveCropRegion.height) / 2 + currentSafeArea!.y;
+      const tolerance = 10;
+      return Math.abs(pos.x - centerX) < tolerance && Math.abs(pos.y - centerY) < tolerance;
+    };
+
     for (let i = 0; i <= totalSamples; i++) {
       if (abortSignal.aborted) return null;
 
@@ -186,18 +194,37 @@ export function VideoEditor() {
           effectiveCropRegion.width, effectiveCropRegion.height
         );
 
+        // Calculate final position with safeArea offset
+        let finalCropPosition = {
+          x: frameCropPos.x + currentSafeArea!.x,
+          y: frameCropPos.y + currentSafeArea!.y,
+        };
+
+        // If no faces detected and position is centered, use previous frame's position for continuity
+        if (adjustedFaces.length === 0 && frameAnalyses.length > 0 && isCenteredPosition(finalCropPosition)) {
+          finalCropPosition = frameAnalyses[frameAnalyses.length - 1].cropPosition;
+          console.log(`[Analysis] Frame ${time.toFixed(1)}s: No faces, using previous position`);
+        }
+
         frameAnalyses.push({
           timestamp: time,
           faces: adjustedFaces,
           speakingFaceIndex: speakingIndex,
           strategy,
-          cropPosition: {
-            x: frameCropPos.x + currentSafeArea!.x,
-            y: frameCropPos.y + currentSafeArea!.y,
-          },
+          cropPosition: finalCropPosition,
         });
       } catch (error) {
         console.error(`Detection failed at ${time}s:`, error);
+        // If detection fails and we have previous frames, use the last position
+        if (frameAnalyses.length > 0) {
+          frameAnalyses.push({
+            timestamp: time,
+            faces: [],
+            speakingFaceIndex: null,
+            strategy: "TRACK",
+            cropPosition: frameAnalyses[frameAnalyses.length - 1].cropPosition,
+          });
+        }
       }
 
       setAnalysisProgress((i + 1) / (totalSamples + 1));
@@ -545,7 +572,29 @@ export function VideoEditor() {
     let isLetterbox = false;
 
     if (generatedClips.length > 0) {
-      const currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
+      // Find clip at current time. Use < for endTime so boundary frame belongs to next clip.
+      let currentClip = generatedClips.find(clip => currentTime >= clip.startTime && currentTime < clip.endTime);
+
+      // Edge case: if at or past the last clip's end, use the last clip
+      if (!currentClip && currentTime >= generatedClips[generatedClips.length - 1].endTime) {
+        currentClip = generatedClips[generatedClips.length - 1];
+      }
+
+      // Another edge case: if still no clip found (shouldn't happen), use nearest clip
+      if (!currentClip) {
+        currentClip = generatedClips.reduce((nearest, clip) => {
+          const currentDist = Math.min(
+            Math.abs(currentTime - clip.startTime),
+            Math.abs(currentTime - clip.endTime)
+          );
+          const nearestDist = Math.min(
+            Math.abs(currentTime - nearest.startTime),
+            Math.abs(currentTime - nearest.endTime)
+          );
+          return currentDist < nearestDist ? clip : nearest;
+        });
+      }
+
       if (currentClip) {
         // When editing selected clip, use the live cropPosition for immediate feedback
         if (selectedClipId && currentClip.id === selectedClipId) {

@@ -1,6 +1,7 @@
 "use client";
 
-import { getPlatformById } from "@/lib/platforms";
+import { useEffect, useState } from "react";
+import { getPlatformById, PLATFORM_CONFIGS } from "@/lib/platforms";
 
 interface ExportProgressModalProps {
   isOpen: boolean;
@@ -16,6 +17,13 @@ interface ExportProgressModalProps {
   onClose: () => void;
 }
 
+// Fun processing messages
+const PROCESSING_MESSAGES = [
+  "Processing video in your browser...",
+  "Grab a coffee. Your video is baking...",
+  "Processing locally for full privacy...",
+];
+
 export function ExportProgressModal({
   isOpen,
   platforms,
@@ -24,6 +32,52 @@ export function ExportProgressModal({
   error,
   onClose,
 }: ExportProgressModalProps) {
+  const [platformIndex, setPlatformIndex] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [platformFade, setPlatformFade] = useState(true);
+  const [messageFade, setMessageFade] = useState(true);
+
+  // Get all platforms that support the current aspect ratio
+  const currentPlatform = progress ? getPlatformById(progress.platformId) : null;
+  const supportedPlatforms = currentPlatform
+    ? PLATFORM_CONFIGS.filter(p => p.aspectRatios.includes(currentPlatform.aspectRatio))
+    : [];
+
+  // Rotate through both platforms and messages synchronously every 8 seconds
+  useEffect(() => {
+    if (status !== "processing") return;
+
+    const interval = setInterval(() => {
+      // Fade out both
+      setPlatformFade(false);
+      setMessageFade(false);
+
+      setTimeout(() => {
+        // Change content for both
+        if (supportedPlatforms.length > 1) {
+          setPlatformIndex((prev) => (prev + 1) % supportedPlatforms.length);
+        }
+        setMessageIndex((prev) => (prev + 1) % PROCESSING_MESSAGES.length);
+
+        // Fade in both
+        setPlatformFade(true);
+        setMessageFade(true);
+      }, 1000);
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [status, supportedPlatforms.length]);
+
+  // Reset indices and fade states when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setPlatformIndex(0);
+      setMessageIndex(0);
+      setPlatformFade(true);
+      setMessageFade(true);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -48,7 +102,7 @@ export function ExportProgressModal({
 
           {status === "processing" && progress && (
             <div className="space-y-4">
-              {/* Platform being processed */}
+              {/* Platform being processed - rotating display with fade effect */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#C2F159] to-[#A7E635] flex items-center justify-center text-neutral-900 font-semibold text-sm">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,8 +110,14 @@ export function ExportProgressModal({
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
-                    {getPlatformById(progress.platformId)?.name || "Exporting"}
+                  <p
+                    className="font-medium text-neutral-900 dark:text-neutral-100 transition-opacity ease-in-out"
+                    style={{
+                      opacity: platformFade ? 1 : 0,
+                      transitionDuration: '1000ms'
+                    }}
+                  >
+                    {supportedPlatforms[platformIndex]?.name || currentPlatform?.name.split(' ')[0] || "Exporting"} {currentPlatform?.aspectRatio}
                   </p>
                 </div>
               </div>
@@ -73,9 +133,15 @@ export function ExportProgressModal({
                 <p className="text-sm text-neutral-500 text-right">{progress.percent}%</p>
               </div>
 
-              {/* Info text */}
-              <p className="text-sm text-neutral-500 text-center">
-                Processing video in your browser...
+              {/* Info text - rotating messages with fade effect */}
+              <p
+                className="text-sm text-neutral-500 text-center transition-opacity ease-in-out min-h-[20px]"
+                style={{
+                  opacity: messageFade ? 1 : 0,
+                  transitionDuration: '1000ms'
+                }}
+              >
+                {PROCESSING_MESSAGES[messageIndex]}
               </p>
             </div>
           )}

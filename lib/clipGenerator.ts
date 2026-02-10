@@ -216,6 +216,33 @@ export function generateHardCutClipsFromAnalysis(
     return [createSingleClip(videoWidth, videoHeight, cropWidth, cropHeight, videoDuration)];
   }
 
+  // Helper to check if a position is centered (likely from no-face detection)
+  const isCenteredPosition = (pos: { x: number; y: number }) => {
+    const centerX = (videoWidth - cropWidth) / 2;
+    const centerY = (videoHeight - cropHeight) / 2;
+    const tolerance = 5; // Allow 5px tolerance for floating point
+    return Math.abs(pos.x - centerX) < tolerance && Math.abs(pos.y - centerY) < tolerance;
+  };
+
+  // Smooth out positions: if current frame has centered position (no face detected),
+  // use previous frame's position to maintain continuity
+  const smoothedAnalyses = frameAnalyses.map((analysis, i) => {
+    if (i === 0 || analysis.faces.length > 0) {
+      return analysis;
+    }
+
+    // No faces detected in current frame - check if it's a centered position
+    if (isCenteredPosition(analysis.cropPosition)) {
+      // Use previous frame's position for continuity
+      return {
+        ...analysis,
+        cropPosition: frameAnalyses[i - 1].cropPosition,
+      };
+    }
+
+    return analysis;
+  });
+
   const clips: VideoClip[] = [];
   // Increased thresholds to reduce clip fragmentation
   // For a 60s video, aim for ~10-14 clips max (4-6 seconds per clip average)
@@ -223,11 +250,11 @@ export function generateHardCutClipsFromAnalysis(
   const positionThreshold = 150; // Position change threshold (pixels) - higher = fewer cuts
 
   let currentClipStart = 0;
-  let currentStrategy = frameAnalyses[0].strategy;
-  let currentCropPos = frameAnalyses[0].cropPosition;
+  let currentStrategy = smoothedAnalyses[0].strategy;
+  let currentCropPos = smoothedAnalyses[0].cropPosition;
 
-  for (let i = 1; i < frameAnalyses.length; i++) {
-    const analysis = frameAnalyses[i];
+  for (let i = 1; i < smoothedAnalyses.length; i++) {
+    const analysis = smoothedAnalyses[i];
     const clipDuration = analysis.timestamp - currentClipStart;
 
     // Check if we need to create a new clip
@@ -242,8 +269,8 @@ export function generateHardCutClipsFromAnalysis(
     // Create new clip if:
     // 1. Strategy changed (TRACK <-> LETTERBOX)
     // 2. Significant position change and clip is long enough
-    const shouldCreateNewClip = 
-      strategyChanged || 
+    const shouldCreateNewClip =
+      strategyChanged ||
       (significantMove && clipDuration >= minClipDuration);
 
     if (shouldCreateNewClip) {
