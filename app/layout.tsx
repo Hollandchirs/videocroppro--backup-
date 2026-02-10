@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   alternates: {
-    canonical: "https://videocrop.pro",
+    canonical: "https://freecropper.com",
   },
 };
 

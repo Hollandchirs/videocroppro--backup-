@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://videocrop.pro/sitemap.xml
+Sitemap: https://freecropper.com/sitemap.xml

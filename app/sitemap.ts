@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://videocrop.pro";
+  const baseUrl = "https://freecropper.com";
 
   return [
     {
