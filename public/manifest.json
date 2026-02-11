@@ -1,0 +1,27 @@
+{
+  "name": "Freecropper",
+  "short_name": "Freecropper",
+  "description": "Free video resizer for social media. Crop and resize videos for TikTok, Instagram, YouTube, and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#C2F159",
+  "theme_color": "#C2F159",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
