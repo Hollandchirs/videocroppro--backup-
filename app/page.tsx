@@ -157,27 +157,29 @@ export default function HomePage() {
               </span>
             </button>
 
-            {/* Center Navigation */}
-            <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-              <a
-                href="#how-it-works"
-                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              >
-                How It Works
-              </a>
-              <a
-                href="#features"
-                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              >
-                Features
-              </a>
-              <a
-                href="#faq"
-                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              >
-                FAQ
-              </a>
-            </nav>
+            {/* Center Navigation - Only show on landing page */}
+            {!showEditor && (
+              <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+                <a
+                  href="#how-it-works"
+                  className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+                >
+                  How It Works
+                </a>
+                <a
+                  href="#features"
+                  className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+                >
+                  Features
+                </a>
+                <a
+                  href="#faq"
+                  className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+                >
+                  FAQ
+                </a>
+              </nav>
+            )}
 
             {/* Right Button */}
             {showEditor ? (
