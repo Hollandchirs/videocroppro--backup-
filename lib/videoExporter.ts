@@ -126,7 +126,7 @@ export async function batchExportWithClips(
       // Most common case: all platforms same size → no split needed
       const { width, height } = uniqueTargets[0];
       if (strategy === "center-crop") {
-        filterComplex = `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[out0]`;
+        filterComplex = `[0:v]crop=${actualCropWidth}:${actualCropHeight}:${cropX}:${cropY},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[out0]`;
       } else {
         // Smart crop: crop to actual crop dimensions, then scale to output size
         // actualCropWidth/Height match the preview cropRegion dimensions
@@ -142,7 +142,7 @@ export async function batchExportWithClips(
       for (let i = 0; i < N; i++) {
         const { width, height } = uniqueTargets[i];
         if (strategy === "center-crop") {
-          filterComplex += `[s${i}]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[out${i}]`;
+          filterComplex += `[s${i}]crop=${actualCropWidth}:${actualCropHeight}:${cropX}:${cropY},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2[out${i}]`;
         } else {
           // Smart crop: crop to actual crop dimensions, then scale to output size
           if (actualCropWidth !== width || actualCropHeight !== height) {
@@ -171,7 +171,7 @@ export async function batchExportWithClips(
 
         filterComplex += `[0:v]trim=${clip.startTime}:${clip.endTime},setpts=PTS-STARTPTS,`;
         if (strategy === "center-crop") {
-          filterComplex += `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
+          filterComplex += `crop=${actualCropWidth}:${actualCropHeight}:${cropX}:${cropY},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
         } else {
           // Smart crop: crop to actual crop dimensions, then scale to output size
           if (actualCropWidth !== width || actualCropHeight !== height) {
@@ -196,7 +196,7 @@ export async function batchExportWithClips(
       "-map", `[out${i}]`, "-map", "0:a?",
       "-c:v", "libx264",
       "-preset", "ultrafast",
-      "-crf", "18",
+      "-crf", "15",
       "-pix_fmt", "yuv420p",
       "-c:a", "copy",
       "-movflags", "+faststart",
