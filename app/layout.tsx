@@ -40,6 +40,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  other: {
+    "saashub-verification": "c6cu0j4vk0n3",
+  },
 };
 
 export default function RootLayout({
