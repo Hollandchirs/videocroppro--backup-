@@ -80,7 +80,7 @@ export function TrustSection() {
               🤝 Our Promise
             </p>
             <p className="text-neutral-600 dark:text-neutral-400">
-              Video Crop Pro is <strong className="text-neutral-900 dark:text-neutral-100">free forever</strong>.
+              Freecropper is <strong className="text-neutral-900 dark:text-neutral-100">free forever</strong>.
               No surprise charges, no export watermarks, no forced sign-ups.
               Just a tool that works.
             </p>

@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Green circular background -->
+  <circle cx="256" cy="256" r="256" fill="#22C55E"/>
+
+  <!-- Film strip border -->
+  <rect x="120" y="156" width="272" height="200" rx="16" fill="white"/>
+  <rect x="130" y="166" width="252" height="180" rx="12" fill="#22C55E"/>
+
+  <!-- Film perforations left -->
+  <rect x="130" y="180" width="12" height="24" rx="3" fill="white"/>
+  <rect x="130" y="216" width="12" height="24" rx="3" fill="white"/>
+  <rect x="130" y="252" width="12" height="24" rx="3" fill="white"/>
+  <rect x="130" y="288" width="12" height="24" rx="3" fill="white"/>
+  <rect x="130" y="324" width="12" height="24" rx="3" fill="white"/>
+
+  <!-- Film perforations right -->
+  <rect x="370" y="180" width="12" height="24" rx="3" fill="white"/>
+  <rect x="370" y="216" width="12" height="24" rx="3" fill="white"/>
+  <rect x="370" y="252" width="12" height="24" rx="3" fill="white"/>
+  <rect x="370" y="288" width="12" height="24" rx="3" fill="white"/>
+  <rect x="370" y="324" width="12" height="24" rx="3" fill="white"/>
+
+  <!-- Play triangle -->
+  <path d="M230 210 L290 256 L230 302 Z" fill="white"/>
+
+  <!-- Text Freecropper -->
+  <text x="256" y="400" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="bold" fill="white">Freecropper</text>
+</svg>

@@ -1,4 +1,4 @@
-# Video Crop Pro - robots.txt
+# Freecropper - robots.txt
 User-agent: *
 Allow: /
 

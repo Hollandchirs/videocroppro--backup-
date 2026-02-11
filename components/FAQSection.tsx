@@ -51,7 +51,7 @@ export function FAQSection() {
             Frequently Asked Questions
           </h2>
           <p className="text-lg text-neutral-600 dark:text-neutral-400">
-            Everything you need to know about Video Crop Pro
+            Everything you need to know about Freecropper
           </p>
         </div>
 

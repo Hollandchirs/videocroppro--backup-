@@ -1,11 +1,11 @@
 
-# Video Crop Pro - 技术栈文档
+# Freecropper - 技术栈文档
 
 > 免费视频裁剪网站 - 支持 TikTok、Instagram、YouTube 等多平台一键裁剪
 
 ## 项目概述
 
-- **项目名称**: Video Crop Pro
+- **项目名称**: Freecropper
 - **项目类型**: 在线视频裁剪工具
 - **目标用户**: 社交媒体内容创作者
 - **核心卖点**:

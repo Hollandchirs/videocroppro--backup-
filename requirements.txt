@@ -3,3 +3,4 @@ uvicorn[standard]==0.32.0
 yt-dlp==2024.11.4
 python-multipart==0.0.12
 pydantic==2.9.0
+claude
