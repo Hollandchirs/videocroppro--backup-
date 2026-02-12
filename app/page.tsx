@@ -223,11 +223,11 @@ export default function HomePage() {
               {/* Main Headline */}
               <div className="text-center">
                 <h1 className="mb-8 text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-5xl lg:text-6xl animate-fade-up animation-delay-100">
-                  Smart Crop for
-                  <span className="text-[#C2F159]"> Short Videos</span>
+                  Free Video Cropper
+                  <span className="text-[#C2F159]"> — No Signup, No Watermark</span>
                 </h1>
                 <p className="mb-6 text-lg text-neutral-600 dark:text-neutral-400 sm:text-xl animate-fade-up animation-delay-200 text-balance leading-loose">
-                  One-click resize for TikTok, Reels, Shorts & all social platforms.
+                  Crop and resize videos for TikTok, Instagram Reels, YouTube Shorts & all social platforms.
                   <br className="hidden sm:block" />
                   <strong className="text-neutral-900 dark:text-neutral-100">AI keeps subjects centered. No stretching. No cropped faces.</strong>
                 </p>
@@ -259,8 +259,49 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* SEO Content Section */}
+          <section className="max-w-3xl mx-auto px-4 pb-12">
+            <div className="text-center text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed space-y-3">
+              <p>
+                Freecropper is a free online video cropper that runs entirely in your browser. Convert landscape 16:9 videos to vertical 9:16 for TikTok and Instagram Reels, square 1:1 for LinkedIn, or 4:5 for Instagram Feed — all from a single upload. AI face detection keeps people centered so you never lose important content when changing aspect ratios.
+              </p>
+              <p>
+                Unlike other tools, Freecropper requires no account, adds no watermark, and never uploads your files to external servers. Your videos stay on your device. Supports MP4, MOV, WebM, and AVI up to 2GB.
+              </p>
+            </div>
+          </section>
+
           {/* Platform Showcase */}
           <PlatformShowcase />
+
+          {/* Quick Links - Platform & Ratio Pages */}
+          <section className="py-12 bg-white dark:bg-neutral-950">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 text-center mb-6">
+                Crop for your platform
+              </h2>
+              <div className="flex flex-wrap justify-center gap-2">
+                {[
+                  { href: "/crop-video-for-tiktok", label: "TikTok (9:16)" },
+                  { href: "/crop-video-for-instagram-reels", label: "Instagram Reels (9:16)" },
+                  { href: "/crop-video-for-youtube-shorts", label: "YouTube Shorts (9:16)" },
+                  { href: "/resize-video-for-linkedin", label: "LinkedIn (1:1 / 16:9)" },
+                  { href: "/crop-video-for-twitter", label: "X / Twitter (16:9)" },
+                  { href: "/convert-16-9-to-9-16", label: "16:9 → 9:16" },
+                  { href: "/convert-video-to-4-5", label: "4:5 Portrait" },
+                  { href: "/convert-video-to-1-1", label: "1:1 Square" },
+                ].map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:border-[#C2F159] hover:bg-[#C2F159]/5 transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
 
           {/* How It Works Section */}
           <HowItWorksSection />

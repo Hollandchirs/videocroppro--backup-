@@ -67,6 +67,7 @@ export function HowItWorksSection() {
                       muted
                       playsInline
                       className="h-full w-full object-cover"
+                      aria-label={`Step ${index + 1}: ${step.title} - ${step.description}`}
                     />
                     {/* Step number overlay */}
                     <div className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#C2F159] text-sm font-bold text-neutral-900 shadow-lg">

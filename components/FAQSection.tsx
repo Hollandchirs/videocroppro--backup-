@@ -26,17 +26,42 @@ const faqs = [
   {
     question: "What video formats are supported?",
     answer:
-      "We support all common video formats including MP4, MOV, WebM, and AVI. Maximum file size is 500MB to ensure smooth browser-based processing.",
+      "We support all common video formats including MP4, MOV, WebM, and AVI. Maximum file size is 2GB to ensure smooth browser-based processing.",
   },
   {
     question: "Can I use the exported videos commercially?",
     answer:
-      "Absolutely. There are no restrictions on how you use your exported videos. They're your videos—post them anywhere, monetize them, use them in ads.",
+      "Absolutely. There are no restrictions on how you use your exported videos. They're your videos — post them anywhere, monetize them, use them in ads.",
   },
   {
     question: "Why no account or sign-up?",
     answer:
-      "We believe tools should be accessible without friction. No email harvesting, no marketing spam—just open the page and start editing.",
+      "We believe tools should be accessible without friction. No email harvesting, no marketing spam — just open the page and start editing.",
+  },
+  {
+    question: "How do I crop a video for TikTok for free?",
+    answer:
+      "Upload your video to Freecropper, select the 9:16 aspect ratio (TikTok's vertical format), and the AI will automatically keep subjects centered. Click Export and download your TikTok-ready video — no signup, no watermark.",
+  },
+  {
+    question: "How do I convert a 16:9 landscape video to 9:16 vertical?",
+    answer:
+      "Upload your 16:9 video, choose 9:16 as the output ratio, and Freecropper's AI face detection will reframe the video to keep people and subjects visible. The whole process takes seconds and runs in your browser.",
+  },
+  {
+    question: "What is the best aspect ratio for Instagram Reels?",
+    answer:
+      "Instagram Reels uses 9:16 (1080x1920 pixels) for full-screen vertical video. For Instagram Feed posts, 4:5 (1080x1350) takes up more screen space than square. Freecropper supports both formats.",
+  },
+  {
+    question: "Can I crop a video without losing quality?",
+    answer:
+      "Yes. Freecropper processes video at the original resolution and re-encodes at 1080p output quality. The crop only changes framing, not compression — so you get clean output without extra artifacts.",
+  },
+  {
+    question: "Is there a free video cropper without watermark?",
+    answer:
+      "Yes — Freecropper exports videos with no watermark, no branding, and no limitations. Unlike most \"free\" tools that add watermarks or lock features behind a paywall, everything here is actually free.",
   },
 ];
 

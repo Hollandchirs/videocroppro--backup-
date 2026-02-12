@@ -32,6 +32,29 @@ export function Footer() {
             <span>Privacy First</span>
           </div>
 
+          {/* Internal links for SEO */}
+          <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-neutral-500 dark:text-neutral-500 max-w-2xl">
+            <a href="/crop-video-for-tiktok" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for TikTok</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/crop-video-for-instagram-reels" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for Instagram Reels</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/crop-video-for-youtube-shorts" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for YouTube Shorts</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/resize-video-for-linkedin" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Resize for LinkedIn</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/crop-video-for-twitter" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for X/Twitter</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/convert-16-9-to-9-16" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">16:9 to 9:16</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/convert-video-to-4-5" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Convert to 4:5</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/convert-video-to-1-1" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Convert to 1:1</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/free-video-cropper-no-signup" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Free Cropper No Signup</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/video-cropper-no-watermark" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Cropper No Watermark</a>
+          </nav>
+
           <p className="text-xs text-neutral-500 dark:text-neutral-500">
             © {new Date().getFullYear()} Freecropper · Built for creators
           </p>

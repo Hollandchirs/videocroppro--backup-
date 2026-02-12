@@ -3,7 +3,7 @@
 const features = [
   {
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6" role="img" aria-label="Subject centered icon">
         <circle cx="12" cy="8" r="4" />
         <path d="M5 20a7 7 0 0 1 14 0" />
         <path d="M12 12v4" strokeDasharray="2 2" />
@@ -16,7 +16,7 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6" role="img" aria-label="No distortion icon">
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <path d="M9 3v18M15 3v18M3 9h18M3 15h18" strokeOpacity="0.3" />
         <path d="M7 7l10 10M17 7l-10 10" strokeDasharray="2 2" />
@@ -28,7 +28,7 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6" role="img" aria-label="One upload all platforms icon">
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
       </svg>
     ),
@@ -38,7 +38,7 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6" role="img" aria-label="No watermark icon">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
       </svg>
     ),
@@ -48,7 +48,7 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6" role="img" aria-label="Free forever icon">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 6v6l4 2" />
         <path d="M2 12h2M20 12h2M12 2v2M12 20v2" strokeOpacity="0.3" />
@@ -60,7 +60,7 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6" role="img" aria-label="No signup required icon">
         <rect x="3" y="11" width="18" height="11" rx="2" />
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         <circle cx="12" cy="16" r="1" />
