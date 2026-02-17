@@ -13,14 +13,26 @@ import { getPlatformById } from "@/lib/platforms";
 
 const loadVideoExporter = () => import("@/lib/videoExporter");
 
+interface RankingItem {
+  rank: number;
+  name: string;
+  badge?: string;
+  pros: string;
+  cons?: string;
+}
+
 interface SubPageLandingProps {
   h1: string;
   h1Highlight: string;
   subtitle: string;
   description: string;
   secondaryDescription?: string;
+  rankingList?: RankingItem[];
   features: { title: string; text: string }[];
   internalLinks: { href: string; label: string }[];
+  faqItems?: { question: string; answer: string }[];
+  bottomCTA?: { text: string; buttonText?: string };
+  showHowItWorks?: boolean;
 }
 
 export function SubPageLanding({
@@ -29,8 +41,12 @@ export function SubPageLanding({
   subtitle,
   description,
   secondaryDescription,
+  rankingList,
   features,
   internalLinks,
+  faqItems,
+  bottomCTA,
+  showHowItWorks = true,
 }: SubPageLandingProps) {
   const [showEditor, setShowEditor] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -245,7 +261,7 @@ export function SubPageLanding({
                   <span className="text-[#C2F159]"> {h1Highlight}</span>
                 </h1>
                 <p className="mb-6 text-lg text-neutral-600 dark:text-neutral-400 sm:text-xl text-balance leading-loose">
-                  {subtitle}
+                  <strong>{h1.split('—')[0].trim()}</strong> is {subtitle}
                 </p>
 
                 <div className="mb-10 flex flex-wrap items-center justify-center gap-3 text-sm">
@@ -292,6 +308,48 @@ export function SubPageLanding({
             </div>
           </section>
 
+          {/* Ranking List (best-of pages) */}
+          {rankingList && rankingList.length > 0 && (
+            <section className="max-w-3xl mx-auto px-4 pb-12">
+              <div className="space-y-3">
+                {rankingList.map((item) => (
+                  <div
+                    key={item.rank}
+                    className={`rounded-2xl border p-5 flex gap-4 items-start ${
+                      item.rank === 1
+                        ? "border-[#C2F159]/60 bg-[#C2F159]/5 dark:bg-[#C2F159]/5"
+                        : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
+                    }`}
+                  >
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      item.rank === 1
+                        ? "bg-[#C2F159] text-neutral-900"
+                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                    }`}>
+                      {item.rank}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+                          {item.name}
+                        </span>
+                        {item.badge && (
+                          <span className="text-xs font-medium bg-[#C2F159] text-neutral-900 px-2 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">{item.pros}</p>
+                      {item.cons && (
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">⚠ {item.cons}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Features Grid */}
           <section className="py-16 bg-white dark:bg-neutral-950">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -330,6 +388,29 @@ export function SubPageLanding({
                   </a>
                 ))}
               </div>
+            </div>
+          </section>
+
+          {/* Bottom CTA */}
+          <section className="py-12 bg-gradient-to-r from-[#C2F159]/10 to-[#C2F159]/5">
+            <div className="max-w-2xl mx-auto px-4 text-center">
+              <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
+                {bottomCTA?.text || "Ready to crop your video?"}
+              </h2>
+              <button
+                onClick={() => {
+                  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                  input?.click();
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-[#C2F159] px-6 py-3 text-base font-semibold text-neutral-900 shadow-lg transition-all hover:shadow-xl hover:scale-105"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" x2="12" y1="3" y2="15" />
+                </svg>
+                {bottomCTA?.buttonText || `${h1.split('—')[0].trim()} Free →`}
+              </button>
             </div>
           </section>
 

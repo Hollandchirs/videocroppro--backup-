@@ -33,26 +33,56 @@ export function Footer() {
           </div>
 
           {/* Internal links for SEO */}
-          <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-neutral-500 dark:text-neutral-500 max-w-2xl">
-            <a href="/crop-video-for-tiktok" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for TikTok</a>
+          <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-neutral-500 dark:text-neutral-500 max-w-4xl">
+            {/* Platform Pages */}
+            <a href="/tiktok-video-cropper" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">TikTok Video Cropper</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/crop-video-for-instagram-reels" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for Instagram Reels</a>
+            <a href="/reels-video-cropper" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Reels Video Cropper</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/crop-video-for-youtube-shorts" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for YouTube Shorts</a>
+            <a href="/shorts-video-cropper" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Shorts Video Cropper</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/resize-video-for-linkedin" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Resize for LinkedIn</a>
+            <a href="/linkedin-video-resizer" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">LinkedIn Video Resizer</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/crop-video-for-twitter" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Crop for X/Twitter</a>
+            <a href="/twitter-video-cropper" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Twitter Video Cropper</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/convert-16-9-to-9-16" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">16:9 to 9:16</a>
+            <a href="/16-9-to-9-16-converter" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">16:9 to 9:16 Converter</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/convert-video-to-4-5" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Convert to 4:5</a>
+            {/* Ratio Pages */}
+            <a href="/landscape-to-vertical" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Landscape to Vertical</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/convert-video-to-1-1" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Convert to 1:1</a>
+            <a href="/4-5-video-converter" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">4:5 Portrait Converter</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
-            <a href="/free-video-cropper-no-signup" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Free Cropper No Signup</a>
+            <a href="/1-1-square-video-converter" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">1:1 Square Converter</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            {/* Feature Pages */}
+            <a href="/video-cropper-no-signup" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Free Cropper No Signup</a>
             <span className="h-1 w-1 rounded-full bg-neutral-400" />
             <a href="/video-cropper-no-watermark" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Cropper No Watermark</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/auto-crop-face-detection" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Auto Crop Face Detection</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            {/* Alternative Pages */}
+            <a href="/vs/capcut" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">CapCut Alternative</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/vs/kapwing" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Kapwing Alternative</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/vs/clideo" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Clideo Alternative</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/vs/veed" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Veed Alternative</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/vs/inshot" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">InShot Alternative</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            {/* Audience Pages */}
+            <a href="/for/podcasters" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">For Podcasters</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/for/content-creators" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">For Content Creators</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/for/social-media-managers" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">For Social Media Managers</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            <a href="/for/agencies" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">For Agencies</a>
+            <span className="h-1 w-1 rounded-full bg-neutral-400" />
+            {/* Best-of Pages */}
+            <a href="/best/video-cropper-2026" className="hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Best Video Cropper 2026</a>
           </nav>
 
           <p className="text-xs text-neutral-500 dark:text-neutral-500">

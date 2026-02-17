@@ -217,6 +217,105 @@ export default function HomePage() {
       {/* Landing Page - Only show when no video */}
       {!showEditor ? (
         <>
+          {/* All Tools - Categorized Link Grid (top of page) */}
+          <section className="py-8 bg-white dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-base font-semibold text-neutral-500 dark:text-neutral-400 text-center mb-6 uppercase tracking-widest text-xs">
+                All Tools
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6">
+                {/* Platform */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Platform</p>
+                  <ul className="space-y-2">
+                    {[
+                      { href: "/tiktok-video-cropper", label: "TikTok Cropper" },
+                      { href: "/reels-video-cropper", label: "Instagram Reels" },
+                      { href: "/shorts-video-cropper", label: "YouTube Shorts" },
+                      { href: "/linkedin-video-resizer", label: "LinkedIn Resizer" },
+                      { href: "/twitter-video-cropper", label: "Twitter / X Cropper" },
+                      { href: "/16-9-to-9-16-converter", label: "16:9 → 9:16" },
+                      { href: "/landscape-to-vertical", label: "Landscape to Vertical" },
+                    ].map((link) => (
+                      <li key={link.href}>
+                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Features */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Features</p>
+                  <ul className="space-y-2">
+                    {[
+                      { href: "/video-cropper-no-signup", label: "No Signup" },
+                      { href: "/video-cropper-no-watermark", label: "No Watermark" },
+                      { href: "/auto-crop-face-detection", label: "Face Detection" },
+                      { href: "/4-5-video-converter", label: "4:5 Portrait" },
+                      { href: "/1-1-square-video-converter", label: "1:1 Square" },
+                    ].map((link) => (
+                      <li key={link.href}>
+                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Comparisons */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Comparisons</p>
+                  <ul className="space-y-2">
+                    {[
+                      { href: "/vs/capcut", label: "vs CapCut" },
+                      { href: "/vs/inshot", label: "vs InShot" },
+                      { href: "/vs/kapwing", label: "vs Kapwing" },
+                      { href: "/vs/clideo", label: "vs Clideo" },
+                      { href: "/vs/veed", label: "vs Veed" },
+                    ].map((link) => (
+                      <li key={link.href}>
+                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* For + Best-of */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
+                  <ul className="space-y-2 mb-5">
+                    {[
+                      { href: "/for/podcasters", label: "Podcasters" },
+                      { href: "/for/content-creators", label: "Content Creators" },
+                      { href: "/for/social-media-managers", label: "Social Media Managers" },
+                      { href: "/for/agencies", label: "Agencies" },
+                    ].map((link) => (
+                      <li key={link.href}>
+                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Best-of</p>
+                  <ul className="space-y-2">
+                    <li>
+                      <a href="/best/video-cropper-2026" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                        Best Cropper 2026
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Hero Section */}
           <section className="hero-bg relative overflow-hidden pb-4 pt-12">
             <div className="max-w-4xl mx-auto px-4">
@@ -273,35 +372,6 @@ export default function HomePage() {
 
           {/* Platform Showcase */}
           <PlatformShowcase />
-
-          {/* Quick Links - Platform & Ratio Pages */}
-          <section className="py-12 bg-white dark:bg-neutral-950">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 text-center mb-6">
-                Crop for your platform
-              </h2>
-              <div className="flex flex-wrap justify-center gap-2">
-                {[
-                  { href: "/crop-video-for-tiktok", label: "TikTok (9:16)" },
-                  { href: "/crop-video-for-instagram-reels", label: "Instagram Reels (9:16)" },
-                  { href: "/crop-video-for-youtube-shorts", label: "YouTube Shorts (9:16)" },
-                  { href: "/resize-video-for-linkedin", label: "LinkedIn (1:1 / 16:9)" },
-                  { href: "/crop-video-for-twitter", label: "X / Twitter (16:9)" },
-                  { href: "/convert-16-9-to-9-16", label: "16:9 → 9:16" },
-                  { href: "/convert-video-to-4-5", label: "4:5 Portrait" },
-                  { href: "/convert-video-to-1-1", label: "1:1 Square" },
-                ].map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:border-[#C2F159] hover:bg-[#C2F159]/5 transition-colors"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </section>
 
           {/* How It Works Section */}
           <HowItWorksSection />
