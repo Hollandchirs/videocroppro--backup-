@@ -21,6 +21,7 @@ const loadVideoExporter = () => import("@/lib/videoExporter");
 export default function HomePage() {
   const [showEditor, setShowEditor] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showAllTools, setShowAllTools] = useState(false);
   const { videoFile, selectedPlatforms, reset, editProject, isAnalyzing, currentClips, cropStrategy, isProcessing, setIsProcessing, cropRegion } = useVideoStore();
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -160,6 +161,116 @@ export default function HomePage() {
             {/* Center Navigation - Only show on landing page */}
             {!showEditor && (
               <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+                {/* All Tools Mega Menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowAllTools((v) => !v)}
+                    className={`flex items-center gap-1 text-sm transition-colors ${showAllTools ? "text-neutral-900 dark:text-neutral-100" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+                  >
+                    All Tools
+                    <svg className={`h-3.5 w-3.5 transition-transform ${showAllTools ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+
+                  {showAllTools && (
+                    <>
+                      {/* Backdrop to close on outside click */}
+                      <div className="fixed inset-0 z-40" onClick={() => setShowAllTools(false)} />
+                      {/* Mega Menu Panel */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 z-50 w-[640px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl p-6">
+                        <div className="grid grid-cols-4 gap-x-6 gap-y-2">
+                          {/* Platform */}
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Platform</p>
+                            <ul className="space-y-2">
+                              {[
+                                { href: "/tiktok-video-cropper", label: "TikTok Cropper" },
+                                { href: "/reels-video-cropper", label: "Instagram Reels" },
+                                { href: "/shorts-video-cropper", label: "YouTube Shorts" },
+                                { href: "/linkedin-video-resizer", label: "LinkedIn Resizer" },
+                                { href: "/twitter-video-cropper", label: "Twitter / X" },
+                                { href: "/16-9-to-9-16-converter", label: "16:9 → 9:16" },
+                                { href: "/landscape-to-vertical", label: "Landscape to Vertical" },
+                              ].map((link) => (
+                                <li key={link.href}>
+                                  <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                    {link.label}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          {/* Features */}
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Features</p>
+                            <ul className="space-y-2">
+                              {[
+                                { href: "/video-cropper-no-signup", label: "No Signup" },
+                                { href: "/video-cropper-no-watermark", label: "No Watermark" },
+                                { href: "/auto-crop-face-detection", label: "Face Detection" },
+                                { href: "/4-5-video-converter", label: "4:5 Portrait" },
+                                { href: "/1-1-square-video-converter", label: "1:1 Square" },
+                              ].map((link) => (
+                                <li key={link.href}>
+                                  <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                    {link.label}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          {/* Comparisons */}
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Comparisons</p>
+                            <ul className="space-y-2">
+                              {[
+                                { href: "/vs/capcut", label: "vs CapCut" },
+                                { href: "/vs/inshot", label: "vs InShot" },
+                                { href: "/vs/kapwing", label: "vs Kapwing" },
+                                { href: "/vs/clideo", label: "vs Clideo" },
+                                { href: "/vs/veed", label: "vs Veed" },
+                              ].map((link) => (
+                                <li key={link.href}>
+                                  <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                    {link.label}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          {/* For + Best-of */}
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
+                            <ul className="space-y-2 mb-5">
+                              {[
+                                { href: "/for/podcasters", label: "Podcasters" },
+                                { href: "/for/content-creators", label: "Content Creators" },
+                                { href: "/for/social-media-managers", label: "Social Media Managers" },
+                                { href: "/for/agencies", label: "Agencies" },
+                              ].map((link) => (
+                                <li key={link.href}>
+                                  <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                    {link.label}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Best-of</p>
+                            <ul className="space-y-2">
+                              <li>
+                                <a href="/best/video-cropper-2026" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                  Best Cropper 2026
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 <a
                   href="#how-it-works"
                   className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
@@ -217,105 +328,6 @@ export default function HomePage() {
       {/* Landing Page - Only show when no video */}
       {!showEditor ? (
         <>
-          {/* All Tools - Categorized Link Grid (top of page) */}
-          <section className="py-8 bg-white dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-base font-semibold text-neutral-500 dark:text-neutral-400 text-center mb-6 uppercase tracking-widest text-xs">
-                All Tools
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6">
-                {/* Platform */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Platform</p>
-                  <ul className="space-y-2">
-                    {[
-                      { href: "/tiktok-video-cropper", label: "TikTok Cropper" },
-                      { href: "/reels-video-cropper", label: "Instagram Reels" },
-                      { href: "/shorts-video-cropper", label: "YouTube Shorts" },
-                      { href: "/linkedin-video-resizer", label: "LinkedIn Resizer" },
-                      { href: "/twitter-video-cropper", label: "Twitter / X Cropper" },
-                      { href: "/16-9-to-9-16-converter", label: "16:9 → 9:16" },
-                      { href: "/landscape-to-vertical", label: "Landscape to Vertical" },
-                    ].map((link) => (
-                      <li key={link.href}>
-                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                          {link.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Features */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Features</p>
-                  <ul className="space-y-2">
-                    {[
-                      { href: "/video-cropper-no-signup", label: "No Signup" },
-                      { href: "/video-cropper-no-watermark", label: "No Watermark" },
-                      { href: "/auto-crop-face-detection", label: "Face Detection" },
-                      { href: "/4-5-video-converter", label: "4:5 Portrait" },
-                      { href: "/1-1-square-video-converter", label: "1:1 Square" },
-                    ].map((link) => (
-                      <li key={link.href}>
-                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                          {link.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Comparisons */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Comparisons</p>
-                  <ul className="space-y-2">
-                    {[
-                      { href: "/vs/capcut", label: "vs CapCut" },
-                      { href: "/vs/inshot", label: "vs InShot" },
-                      { href: "/vs/kapwing", label: "vs Kapwing" },
-                      { href: "/vs/clideo", label: "vs Clideo" },
-                      { href: "/vs/veed", label: "vs Veed" },
-                    ].map((link) => (
-                      <li key={link.href}>
-                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                          {link.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* For + Best-of */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
-                  <ul className="space-y-2 mb-5">
-                    {[
-                      { href: "/for/podcasters", label: "Podcasters" },
-                      { href: "/for/content-creators", label: "Content Creators" },
-                      { href: "/for/social-media-managers", label: "Social Media Managers" },
-                      { href: "/for/agencies", label: "Agencies" },
-                    ].map((link) => (
-                      <li key={link.href}>
-                        <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                          {link.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Best-of</p>
-                  <ul className="space-y-2">
-                    <li>
-                      <a href="/best/video-cropper-2026" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                        Best Cropper 2026
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </section>
-
           {/* Hero Section */}
           <section className="hero-bg relative overflow-hidden pb-4 pt-12">
             <div className="max-w-4xl mx-auto px-4">
