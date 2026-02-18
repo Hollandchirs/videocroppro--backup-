@@ -14,6 +14,7 @@ import { FAQSection } from "@/components/FAQSection";
 import { Footer } from "@/components/Footer";
 import { useVideoStore } from "@/lib/store";
 import { getPlatformById } from "@/lib/platforms";
+import { trackExportComplete } from "@/lib/analytics";
 
 // Dynamic import to avoid SSR issues
 const loadVideoExporter = () => import("@/lib/videoExporter");
@@ -115,6 +116,14 @@ export default function HomePage() {
 
       setExportStatus("completed");
       setExportProgress({ current: 1, total: 1, platformId: firstPlatformId, percent: 100 });
+
+      // Track export complete
+      // Track export complete
+      trackExportComplete({
+        platform_id: firstPlatformId,
+        aspect_ratio: platform.aspectRatio,
+      });
+
       downloadBlob(blob, filename);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
