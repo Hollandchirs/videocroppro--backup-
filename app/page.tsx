@@ -248,25 +248,10 @@ export default function HomePage() {
                               ))}
                             </ul>
                           </div>
-                          {/* For + Best-of */}
+                          {/* Best-of + For */}
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
-                            <ul className="space-y-2 mb-5">
-                              {[
-                                { href: "/for/podcasters", label: "Podcasters" },
-                                { href: "/for/content-creators", label: "Content Creators" },
-                                { href: "/for/social-media-managers", label: "Social Media Managers" },
-                                { href: "/for/agencies", label: "Agencies" },
-                              ].map((link) => (
-                                <li key={link.href}>
-                                  <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                                    {link.label}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
                             <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Best-of</p>
-                            <ul className="space-y-2">
+                            <ul className="space-y-2 mb-5">
                               <li>
                                 <a href="/best/video-cropper-2026" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
                                   Best Cropper 2026
@@ -274,9 +259,23 @@ export default function HomePage() {
                               </li>
                               <li>
                                 <a href="/best/how-to-use-freecropper" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                                  How to Use Like a Pro
+                                  How to Use Freecropper Like a Pro
                                 </a>
                               </li>
+                            </ul>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
+                            <ul className="space-y-2">
+                              {[
+                                { href: "/for/podcasters", label: "Podcasters" },
+                                { href: "/for/content-creators", label: "Content Creators" },
+                                { href: "/for/social-media-managers", label: "Social Media Managers" },
+                              ].map((link) => (
+                                <li key={link.href}>
+                                  <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                    {link.label}
+                                  </a>
+                                </li>
+                              ))}
                             </ul>
                           </div>
                         </div>

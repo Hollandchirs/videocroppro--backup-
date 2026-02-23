@@ -99,7 +99,7 @@ export default function HowToUseFreecropperPage() {
             <div className="flex flex-wrap items-center gap-4 mt-8 text-sm text-neutral-500">
               <span>Updated Feb 2026</span>
               <span className="w-1 h-1 rounded-full bg-neutral-600" />
-              <span>8 min read</span>
+              <span>5 min read</span>
               <span className="w-1 h-1 rounded-full bg-neutral-600" />
               <span>Beginner-friendly</span>
             </div>
