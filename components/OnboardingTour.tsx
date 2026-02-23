@@ -6,36 +6,24 @@ const STORAGE_KEY = "freecropper_onboarding_done";
 
 const STEPS = [
   {
-    icon: (
-      <svg className="w-10 h-10 text-[#C2F159]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
-      </svg>
-    ),
-    title: "Select a clip to edit",
-    description: "Click any clip in the timeline below the preview. The selected clip will highlight in green.",
+    video: "/onboarding-step1.mp4",
+    title: "Choose a size to analyze",
+    description: "Pick a target platform or aspect ratio. AI will analyze your video and auto-generate smart crop clips.",
   },
   {
-    icon: (
-      <svg className="w-10 h-10 text-[#C2F159]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
-      </svg>
-    ),
-    title: "Drag to reframe",
-    description: "After selecting a clip, drag the video preview to reposition the crop area. Pinch to zoom on mobile.",
+    video: "/onboarding-step2.mp4",
+    title: "Select a clip to reframe",
+    description: "Click any clip in the timeline, then drag left or right on the preview to reposition the crop area.",
   },
   {
-    icon: (
-      <svg className="w-10 h-10 text-[#C2F159]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="6" cy="6" r="3" />
-        <circle cx="6" cy="18" r="3" />
-        <line x1="20" y1="4" x2="8.12" y2="15.88" />
-        <line x1="14.47" y1="14.48" x2="20" y2="20" />
-        <line x1="8.12" y1="8.12" x2="12" y2="12" />
-      </svg>
-    ),
-    title: "Cut & rearrange clips",
-    description: "Drag clip edges to trim. Use the scissors button to split at the playhead. Drag clips to reorder.",
+    video: "/onboarding-step3.mp4",
+    title: "Cut a clip",
+    description: "Move the playhead to the exact moment you want, then hit the scissors button to split the clip in two.",
+  },
+  {
+    video: "/onboarding-step4.mp4",
+    title: "Drag to rearrange clips",
+    description: "Drag a clip over another to quickly swap or merge segments — great for combining similar shots.",
   },
 ];
 
@@ -45,12 +33,11 @@ export function OnboardingTour() {
 
   useEffect(() => {
     try {
-      const done = localStorage.getItem(STORAGE_KEY);
-      if (!done) {
+      if (!localStorage.getItem(STORAGE_KEY)) {
         setVisible(true);
       }
     } catch {
-      // localStorage not available - skip tour
+      // localStorage not available
     }
   }, []);
 
@@ -69,69 +56,88 @@ export function OnboardingTour() {
     }
   };
 
+  const prev = () => {
+    if (step > 0) setStep(step - 1);
+  };
+
   if (!visible) return null;
 
   const current = STEPS[step];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 w-full max-w-sm mx-4 p-7">
-        {/* Close */}
-        <button
-          onClick={dismiss}
-          className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
-          aria-label="Skip tutorial"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+      <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 w-full max-w-sm mx-4 overflow-hidden">
 
-        {/* Step dots */}
-        <div className="flex items-center gap-1.5 mb-6">
-          {STEPS.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === step ? "w-5 bg-[#C2F159]" : "w-1.5 bg-neutral-200 dark:bg-neutral-700"
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Icon */}
-        <div className="flex items-center justify-center mb-5">
-          {current.icon}
+        {/* Video */}
+        <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
+          <video
+            key={current.video}
+            src={current.video}
+            className="w-full h-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+          {/* Step badge */}
+          <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium rounded-full px-2.5 py-1">
+            {step + 1} / {STEPS.length}
+          </div>
+          {/* Close */}
+          <button
+            onClick={dismiss}
+            className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full w-7 h-7 flex items-center justify-center transition-colors"
+            aria-label="Skip tutorial"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
 
         {/* Content */}
-        <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 text-center mb-2">
-          {current.title}
-        </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center leading-relaxed mb-7">
-          {current.description}
-        </p>
+        <div className="p-5">
+          {/* Step dots */}
+          <div className="flex items-center gap-1.5 mb-4">
+            {STEPS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setStep(i)}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === step ? "w-5 bg-[#C2F159]" : "w-1.5 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300"
+                }`}
+              />
+            ))}
+          </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={dismiss}
-            className="text-sm text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
-          >
-            Skip
-          </button>
-          <button
-            onClick={next}
-            className="inline-flex items-center gap-2 rounded-full bg-[#C2F159] px-5 py-2 text-sm font-semibold text-neutral-900 hover:opacity-90 transition-opacity"
-          >
-            {step < STEPS.length - 1 ? "Next" : "Got it!"}
-            {step < STEPS.length - 1 && (
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            )}
-          </button>
+          <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">
+            {current.title}
+          </h3>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed mb-5">
+            {current.description}
+          </p>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={step === 0 ? dismiss : prev}
+              className="text-sm text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+            >
+              {step === 0 ? "Skip" : "Back"}
+            </button>
+            <button
+              onClick={next}
+              className="inline-flex items-center gap-2 rounded-full bg-[#C2F159] px-5 py-2 text-sm font-semibold text-neutral-900 hover:opacity-90 transition-opacity"
+            >
+              {step < STEPS.length - 1 ? "Next" : "Got it!"}
+              {step < STEPS.length - 1 && (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
