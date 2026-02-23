@@ -18,6 +18,7 @@ import {
 import type { FrameAnalysis } from "@/lib/clipGenerator";
 import { TimelineEditor } from "./TimelineEditor";
 import { saveEditProject, loadEditProject } from "@/lib/editProjectManager";
+import { OnboardingTour } from "./OnboardingTour";
 
 export function VideoEditor() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -973,6 +974,9 @@ export function VideoEditor() {
 
   return (
     <div className="space-y-4">
+      {/* First-visit onboarding tour */}
+      <OnboardingTour />
+
       {/* Video Preview */}
       <div
         ref={containerRef}
@@ -1031,6 +1035,27 @@ export function VideoEditor() {
         {targetPlatform && (
           <div className="absolute top-4 right-4 px-3 py-1 bg-black/70 text-white text-sm rounded-full">
             {targetPlatform.aspectRatio}
+          </div>
+        )}
+
+        {/* Canvas interaction hint */}
+        {!isAnalyzing && generatedClips.length > 0 && (
+          <div className="absolute bottom-16 right-4 pointer-events-none">
+            {selectedClipId ? (
+              <div className="flex items-center gap-1.5 bg-black/70 text-white text-xs rounded-full px-3 py-1.5 animate-fade-in">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 9l-3 3 3 3M19 9l3 3-3 3M2 12h20" />
+                </svg>
+                Drag to reframe
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-black/70 text-white text-xs rounded-full px-3 py-1.5 animate-fade-in">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+                Click a clip below to edit crop
+              </div>
+            )}
           </div>
         )}
 

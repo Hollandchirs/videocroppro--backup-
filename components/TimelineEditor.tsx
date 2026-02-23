@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { VideoClip } from "@/lib/types";
 
+const TIMELINE_HINT_KEY = "freecropper_timeline_hint_done";
+
 interface TimelineEditorProps {
   clips: VideoClip[];
   duration: number;
@@ -25,6 +27,27 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   onSeek,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const [showClipHint, setShowClipHint] = useState(false);
+
+  // Show first-clip hint once per session after clips load
+  useEffect(() => {
+    if (clips.length > 0 && selectedClipId === null) {
+      try {
+        if (!localStorage.getItem(TIMELINE_HINT_KEY)) {
+          setShowClipHint(true);
+        }
+      } catch {}
+    }
+  }, [clips.length]);
+
+  // Hide hint once user selects a clip
+  useEffect(() => {
+    if (selectedClipId) {
+      setShowClipHint(false);
+      try { localStorage.setItem(TIMELINE_HINT_KEY, "1"); } catch {}
+    }
+  }, [selectedClipId]);
+
   const [dragState, setDragState] = useState<{
     type: "move" | "resize-start" | "resize-end" | null;
     clipId: string | null;
@@ -577,6 +600,22 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
               </div>
             );
           })}
+
+          {/* First-clip hint tooltip */}
+          {showClipHint && clips.length > 0 && (
+            <div
+              className="absolute -top-9 left-0 z-30 pointer-events-none"
+            >
+              <div className="flex items-center gap-1.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+                Click a clip to select &amp; drag to reframe
+              </div>
+              {/* Arrow */}
+              <div className="w-2.5 h-2.5 bg-neutral-900 dark:bg-neutral-100 rotate-45 ml-4 -mt-1.5 rounded-sm" />
+            </div>
+          )}
 
           {/* Empty placeholder when no clips */}
           {clips.length === 0 && (
