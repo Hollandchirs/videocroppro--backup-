@@ -6,22 +6,22 @@ const STORAGE_KEY = "freecropper_onboarding_v2_done";
 
 const STEPS = [
   {
-    video: "/onboarding-step1.mp4",
+    video: "/onboarding-step1-sm.mp4",
     title: "Choose a size to analyze",
     description: "Pick a target platform or aspect ratio. AI will analyze your video and auto-generate smart crop clips.",
   },
   {
-    video: "/onboarding-step2.mp4",
+    video: "/onboarding-step2-sm.mp4",
     title: "Select a clip to reframe",
     description: "Click any clip in the timeline, then drag left or right on the preview to reposition the crop area.",
   },
   {
-    video: "/onboarding-step3.mp4",
+    video: "/onboarding-step3-sm.mp4",
     title: "Cut a clip",
     description: "Move the playhead to the exact moment you want, then hit the scissors button to split the clip in two.",
   },
   {
-    video: "/onboarding-step4.mp4",
+    video: "/onboarding-step4-sm.mp4",
     title: "Drag to rearrange clips",
     description: "Drag a clip over another to quickly swap or merge segments — great for combining similar shots.",
   },
