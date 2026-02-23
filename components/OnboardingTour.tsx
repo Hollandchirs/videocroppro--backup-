@@ -68,25 +68,29 @@ export function OnboardingTour() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 w-full max-w-sm mx-4 overflow-hidden">
 
-        {/* Video */}
+        {/* Video - all rendered at once, CSS toggles visibility to avoid reload black flash */}
         <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
-          <video
-            key={current.video}
-            src={current.video}
-            className="w-full h-full object-cover"
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
+          {STEPS.map((s, i) => (
+            <video
+              key={s.video}
+              src={s.video}
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-200"
+              style={{ opacity: i === step ? 1 : 0 }}
+              autoPlay={i === step}
+              loop
+              muted
+              playsInline
+              preload="auto"
+            />
+          ))}
           {/* Step badge */}
-          <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium rounded-full px-2.5 py-1">
+          <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium rounded-full px-2.5 py-1 z-10">
             {step + 1} / {STEPS.length}
           </div>
           {/* Close */}
           <button
             onClick={dismiss}
-            className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full w-7 h-7 flex items-center justify-center transition-colors"
+            className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full w-7 h-7 flex items-center justify-center transition-colors z-10"
             aria-label="Skip tutorial"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
