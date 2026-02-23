@@ -272,6 +272,11 @@ export default function HomePage() {
                                   Best Cropper 2026
                                 </a>
                               </li>
+                              <li>
+                                <a href="/best/how-to-use-freecropper" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                  How to Use Like a Pro
+                                </a>
+                              </li>
                             </ul>
                           </div>
                         </div>
