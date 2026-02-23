@@ -189,18 +189,27 @@ export default function HomePage() {
                       {/* Mega Menu Panel */}
                       <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 z-50 w-[640px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl p-6">
                         <div className="grid grid-cols-4 gap-x-6 gap-y-2">
-                          {/* Platform */}
+                          {/* Best-of + For */}
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Platform</p>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Best-of</p>
+                            <ul className="space-y-2 mb-5">
+                              <li>
+                                <a href="/best/video-cropper-2026" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                  Best Cropper 2026
+                                </a>
+                              </li>
+                              <li>
+                                <a href="/best/how-to-use-freecropper" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
+                                  How-to-use Guide
+                                </a>
+                              </li>
+                            </ul>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
                             <ul className="space-y-2">
                               {[
-                                { href: "/tiktok-video-cropper", label: "TikTok Cropper" },
-                                { href: "/reels-video-cropper", label: "Instagram Reels" },
-                                { href: "/shorts-video-cropper", label: "YouTube Shorts" },
-                                { href: "/linkedin-video-resizer", label: "LinkedIn Resizer" },
-                                { href: "/twitter-video-cropper", label: "Twitter / X" },
-                                { href: "/16-9-to-9-16-converter", label: "16:9 → 9:16" },
-                                { href: "/landscape-to-vertical", label: "Landscape to Vertical" },
+                                { href: "/for/podcasters", label: "Podcasters" },
+                                { href: "/for/content-creators", label: "Content Creators" },
+                                { href: "/for/social-media-managers", label: "Social Media Managers" },
                               ].map((link) => (
                                 <li key={link.href}>
                                   <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
@@ -248,27 +257,18 @@ export default function HomePage() {
                               ))}
                             </ul>
                           </div>
-                          {/* Best-of + For */}
+                          {/* Platform */}
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Best-of</p>
-                            <ul className="space-y-2 mb-5">
-                              <li>
-                                <a href="/best/video-cropper-2026" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                                  Best Cropper 2026
-                                </a>
-                              </li>
-                              <li>
-                                <a href="/best/how-to-use-freecropper" className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">
-                                  How to Use Freecropper Like a Pro
-                                </a>
-                              </li>
-                            </ul>
-                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">For</p>
+                            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Platform</p>
                             <ul className="space-y-2">
                               {[
-                                { href: "/for/podcasters", label: "Podcasters" },
-                                { href: "/for/content-creators", label: "Content Creators" },
-                                { href: "/for/social-media-managers", label: "Social Media Managers" },
+                                { href: "/tiktok-video-cropper", label: "TikTok Cropper" },
+                                { href: "/reels-video-cropper", label: "Instagram Reels" },
+                                { href: "/shorts-video-cropper", label: "YouTube Shorts" },
+                                { href: "/linkedin-video-resizer", label: "LinkedIn Resizer" },
+                                { href: "/twitter-video-cropper", label: "Twitter / X" },
+                                { href: "/16-9-to-9-16-converter", label: "16:9 → 9:16" },
+                                { href: "/landscape-to-vertical", label: "Landscape to Vertical" },
                               ].map((link) => (
                                 <li key={link.href}>
                                   <a href={link.href} className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors">

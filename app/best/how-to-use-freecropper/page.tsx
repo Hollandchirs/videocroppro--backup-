@@ -48,7 +48,7 @@ export default function HowToUseFreecropperPage() {
 
         {/* Nav — matches site style */}
         <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 lg:px-8 py-4">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <Link href="/" className="flex items-center gap-2 w-fit hover:opacity-80 transition-opacity">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#C2F159]">
                 <svg className="h-4 w-4 text-neutral-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -171,17 +171,13 @@ export default function HowToUseFreecropperPage() {
                 Supported formats: MP4, MOV, WebM — up to 2 GB. Once uploaded, the editor opens automatically with your video preview on the left and the settings panel on the right.
               </p>
             </div>
-            <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr>
-                    <td className="px-5 py-3 text-neutral-500 text-xs font-semibold uppercase tracking-wide w-20 align-top">Note</td>
-                    <td className="px-5 py-3 text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                      Your video never leaves your device. All processing happens locally in your browser — nothing is uploaded to any server.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="flex gap-3 rounded-xl bg-[#C2F159]/15 border border-[#C2F159]/40 px-5 py-4">
+              <svg className="w-4 h-4 mt-0.5 shrink-0 text-[#7aaa1a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                <strong className="text-neutral-900 dark:text-neutral-100">100% private.</strong> Your video never leaves your device — all processing happens locally in your browser, nothing is uploaded to any server.
+              </p>
             </div>
           </section>
 
