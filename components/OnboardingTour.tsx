@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const STORAGE_KEY = "freecropper_onboarding_done";
 
@@ -30,6 +30,7 @@ const STEPS = [
 export function OnboardingTour() {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   useEffect(() => {
     try {
@@ -40,6 +41,19 @@ export function OnboardingTour() {
       // localStorage not available
     }
   }, []);
+
+  // Play current video, pause all others
+  useEffect(() => {
+    videoRefs.current.forEach((vid, i) => {
+      if (!vid) return;
+      if (i === step) {
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+      }
+    });
+  }, [step, visible]);
 
   const dismiss = () => {
     try {
@@ -73,10 +87,10 @@ export function OnboardingTour() {
           {STEPS.map((s, i) => (
             <video
               key={s.video}
+              ref={(el) => { videoRefs.current[i] = el; }}
               src={s.video}
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-200"
               style={{ opacity: i === step ? 1 : 0 }}
-              autoPlay={i === step}
               loop
               muted
               playsInline
