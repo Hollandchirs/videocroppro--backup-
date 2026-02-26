@@ -42,6 +42,16 @@ export default function CropVideoForTwitterPage() {
         { href: "/1-1-square-video-converter", label: "Convert video to 1:1" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "Which aspect ratio works best on X (Twitter)?",
+          answer: "16:9 is the standard widescreen format, while 1:1 square often takes up more feed space on mobile. Freecropper supports both.",
+        },
+        {
+          question: "Does Freecropper add any branding to X videos?",
+          answer: "No. Exports are clean with no watermark, ready to post to X.",
+        },
+      ]}
     />
   );
 }

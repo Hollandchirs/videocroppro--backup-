@@ -98,6 +98,10 @@ export default function CapCutAlternativePage() {
         ]}
         faqItems={[
           {
+            question: "Does CapCut free add a watermark?",
+            answer: "Yes. CapCut adds a watermark on free exports unless you pay to remove it. FreeCropper exports are watermark-free by default.",
+          },
+          {
             question: "Is FreeCropper as good as CapCut for cropping?",
             answer: "For cropping specifically? Better. Same AI, no watermark, larger files, no account. CapCut is great for full video editing, but if you just need to change aspect ratio, FreeCropper is faster and cleaner.",
           },

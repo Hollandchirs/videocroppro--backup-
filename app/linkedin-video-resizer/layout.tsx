@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   keywords:
     "resize video for linkedin, linkedin video size, linkedin video dimensions, crop video linkedin, square video linkedin, linkedin video aspect ratio",
   alternates: {
-    canonical: "https://freecropper.com/resize-video-for-linkedin",
+    canonical: "https://freecropper.com/linkedin-video-resizer",
   },
   openGraph: {
     title: "Resize Video for LinkedIn Free — 1:1 Square & 16:9",
     description: "Crop videos for LinkedIn feed and ads. AI face detection, no signup, no watermark.",
     type: "website",
-    url: "https://freecropper.com/resize-video-for-linkedin",
+    url: "https://freecropper.com/linkedin-video-resizer",
     siteName: "Freecropper",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },

@@ -68,6 +68,10 @@ export default function ForAgenciesPage() {
           answer: "No branding on exports means clean, client-ready videos. Share one tool URL with your team — no accounts, no installations. Process multiple client videos efficiently with 2GB file support.",
         },
         {
+          question: "Can I deliver exports directly to clients?",
+          answer: "Yes. Exports are watermark-free and ready to send. You can hand them off as final assets without extra cleanup.",
+        },
+        {
           question: "Can I use FreeCropper for client videos?",
           answer: "Yes. Upload your client's video, select their target platforms, and export. No watermark, no branding — just clean, formatted video ready to post to their social accounts.",
         },

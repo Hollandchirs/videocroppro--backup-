@@ -69,6 +69,10 @@ export default function ForContentCreatorsPage() {
           answer: "You need 9:16 for TikTok, Instagram Reels, and YouTube Shorts; 4:5 for Instagram Feed; 16:9 for YouTube and Twitter; and 1:1 for LinkedIn. FreeCropper supports all of these from a single upload.",
         },
         {
+          question: "Can I repurpose one video for multiple platforms?",
+          answer: "Yes. Upload once, then export the same clip in multiple sizes so you can post to TikTok, Reels, Shorts, and YouTube without re-editing.",
+        },
+        {
           question: "Can I add my own overlays after cropping?",
           answer: "Yes. FreeCropper exports clean MP4 files without any branding. You can import these into CapCut, Premiere, Final Cut, or any editor to add captions, effects, or your own branding.",
         },

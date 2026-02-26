@@ -41,6 +41,16 @@ export default function FreeVideoCropperNoSignupPage() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "Do I need an email to crop a video?",
+          answer: "No. Freecropper works without any signup, email, or account. Open the page and start cropping immediately.",
+        },
+        {
+          question: "Why is there no signup?",
+          answer: "We built Freecropper to remove friction. No accounts, no tracking, just the tool.",
+        },
+      ]}
     />
   );
 }

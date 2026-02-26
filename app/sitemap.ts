@@ -46,5 +46,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
     // Best-of pages
     { url: `${baseUrl}/best/video-cropper-2026`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${baseUrl}/best/how-to-use-freecropper`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
   ];
 }

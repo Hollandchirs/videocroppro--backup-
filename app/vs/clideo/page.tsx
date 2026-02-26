@@ -64,6 +64,10 @@ export default function ClideoAlternativePage() {
       ]}
       faqItems={[
         {
+          question: "Does Clideo free add a watermark?",
+          answer: "Yes. Clideo’s free exports include a watermark. FreeCropper exports without any watermark, so your videos stay clean.",
+        },
+        {
           question: "Is FreeCropper as good as Clideo for cropping?",
           answer: "For cropping specifically? Better. AI face detection keeps people centered, no watermark, no video length restrictions. Clideo is simple and easy to use, but FreeCropper offers the same simplicity without the watermark.",
         },

@@ -42,6 +42,16 @@ export default function VideoCropperNoWatermarkPage() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "How do you remove watermarks?",
+          answer: "We never add one in the first place. Every export is clean by default.",
+        },
+        {
+          question: "Is no watermark a limited trial?",
+          answer: "No. There is no premium tier or watermark removal fee. It is free on every export.",
+        },
+      ]}
     />
   );
 }

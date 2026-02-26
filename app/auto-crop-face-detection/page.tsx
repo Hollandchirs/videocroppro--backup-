@@ -3,14 +3,14 @@ import { SubPageLanding } from "@/components/SubPageLanding";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://freecropper.com"),
-  title: "Auto Crop Video Face Detection — AI Keeps Faces Centered | FreeCropper",
-  description: "Auto crop video with face detection. AI automatically tracks and centers faces when changing aspect ratios. Free, no watermark, 2GB files.",
+  title: "Auto Crop Faces in Video — AI Face Detection | FreeCropper",
+  description: "Auto crop faces in video with AI face detection. Automatically tracks and centers faces when changing aspect ratios. Free, no watermark, 2GB files.",
   alternates: {
     canonical: "https://freecropper.com/auto-crop-face-detection",
   },
   openGraph: {
-    title: "Auto Crop Video Face Detection — AI Keeps Faces Centered",
-    description: "Auto crop video with face detection. AI automatically tracks and centers faces when changing aspect ratios.",
+    title: "Auto Crop Faces in Video — AI Face Detection",
+    description: "Auto crop faces in video with AI face detection. Automatically tracks and centers faces when changing aspect ratios.",
     type: "website",
     url: "https://freecropper.com/auto-crop-face-detection",
     siteName: "FreeCropper",
@@ -25,10 +25,10 @@ export const metadata: Metadata = {
 export default function AutoCropFaceDetectionPage() {
   return (
     <SubPageLanding
-      h1="Auto Crop Video Face Detection"
-      h1Highlight="— AI Keeps Faces Centered"
-      subtitle="the easiest way to crop videos with AI face tracking. Automatically detects and centers faces across all frames."
-      description="Auto crop video with AI face detection that tracks faces throughout your entire video. When converting from landscape to vertical or changing aspect ratios, the AI automatically reframes the crop to keep faces centered — no manual adjustment needed."
+      h1="Auto Crop Faces in Video"
+      h1Highlight="— AI Face Detection"
+      subtitle="the easiest way to auto crop faces with AI tracking. Automatically detects and centers faces across all frames."
+      description="Auto crop faces in video with AI face detection that tracks faces throughout your entire clip. When converting from landscape to vertical or changing aspect ratios, the AI automatically reframes the crop to keep faces centered — no manual adjustment needed."
       secondaryDescription="Perfect for talking heads, interviews, tutorials, vlogs, and any video with a person in frame. Uses MediaPipe for accurate face tracking. No watermark, no signup, files up to 2GB, 100% browser-based."
       features={[
         {

@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   keywords:
     "crop video for youtube shorts, youtube shorts video size, resize video youtube shorts, youtube shorts aspect ratio, vertical video youtube, 9:16 youtube",
   alternates: {
-    canonical: "https://freecropper.com/crop-video-for-youtube-shorts",
+    canonical: "https://freecropper.com/shorts-video-cropper",
   },
   openGraph: {
     title: "Crop Video for YouTube Shorts Free — 9:16 Vertical",
     description: "Convert landscape to vertical for YouTube Shorts. AI face detection, no signup, no watermark.",
     type: "website",
-    url: "https://freecropper.com/crop-video-for-youtube-shorts",
+    url: "https://freecropper.com/shorts-video-cropper",
     siteName: "Freecropper",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },

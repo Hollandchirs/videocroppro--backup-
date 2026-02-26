@@ -7,14 +7,14 @@ export const metadata: Metadata = {
   keywords:
     "free video cropper no signup, video cropper no account, free video cropper no watermark, crop video online free, video resizer no registration, free video editor no login",
   alternates: {
-    canonical: "https://freecropper.com/free-video-cropper-no-signup",
+    canonical: "https://freecropper.com/video-cropper-no-signup",
   },
   openGraph: {
     title: "Free Video Cropper No Signup — No Watermark, No Account",
     description:
       "Crop and resize videos for any social platform. No account, no watermark. AI face detection.",
     type: "website",
-    url: "https://freecropper.com/free-video-cropper-no-signup",
+    url: "https://freecropper.com/video-cropper-no-signup",
     siteName: "Freecropper",
     images: [
       {

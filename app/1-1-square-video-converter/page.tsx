@@ -42,6 +42,16 @@ export default function ConvertVideoTo11Page() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "When should I use 1:1 vs 4:5?",
+          answer: "Use 1:1 when you need a safe, cross-platform square format. Use 4:5 when you want more vertical screen space in Instagram and Facebook feeds.",
+        },
+        {
+          question: "What resolution is best for square video?",
+          answer: "1080x1080 is the standard square resolution for social platforms. Freecropper exports at 1080x1080 when you choose 1:1.",
+        },
+      ]}
     />
   );
 }

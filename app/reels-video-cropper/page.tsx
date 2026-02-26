@@ -42,6 +42,16 @@ export default function CropVideoForInstagramReelsPage() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "What size should Instagram Reels be?",
+          answer: "Instagram Reels are vertical 9:16. Freecropper exports 1080x1920 when you choose the Reels format.",
+        },
+        {
+          question: "Can I use 4:5 for Instagram Feed?",
+          answer: "Yes. 4:5 is ideal for feed posts because it uses more screen space than square. You can export both 9:16 and 4:5 from one upload.",
+        },
+      ]}
     />
   );
 }

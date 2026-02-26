@@ -42,6 +42,16 @@ export default function ResizeVideoForLinkedInPage() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "What size should LinkedIn videos be?",
+          answer: "LinkedIn supports 1:1 square, 16:9 landscape, and 9:16 vertical. Square often performs well in the feed because it takes up more screen space.",
+        },
+        {
+          question: "Can I export multiple LinkedIn sizes from one upload?",
+          answer: "Yes. Upload once and export 1:1, 16:9, and 9:16 as needed for posts or ads.",
+        },
+      ]}
     />
   );
 }

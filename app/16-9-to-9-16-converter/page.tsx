@@ -51,6 +51,10 @@ export default function Converter169To916Page() {
           answer: "Rotating 16:9 gives you a very thin vertical strip. The correct conversion is to crop a 9:16 portion out of the 16:9 frame — which is exactly what FreeCropper does. The AI selects the best crop area to keep faces and subjects visible.",
         },
         {
+          question: "Is this different from landscape to vertical?",
+          answer: "They are the same conversion. This page focuses on the exact 16:9 to 9:16 ratio math, while the landscape-to-vertical page focuses on the use case and workflow.",
+        },
+        {
           question: "What resolution will I get?",
           answer: "1080×1920 pixels — the exact resolution TikTok, Instagram Reels, and YouTube Shorts recommend for full-screen vertical playback.",
         },

@@ -42,6 +42,16 @@ export default function CropVideoForYoutubeShortsPage() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "What size should YouTube Shorts be?",
+          answer: "Shorts are vertical 9:16. Freecropper exports 1080x1920 when you choose the Shorts format.",
+        },
+        {
+          question: "Can I keep a 16:9 version too?",
+          answer: "Yes. Upload once, export a 9:16 Shorts version and keep your original 16:9 for regular YouTube uploads.",
+        },
+      ]}
     />
   );
 }

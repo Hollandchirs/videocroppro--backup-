@@ -65,6 +65,10 @@ export default function KapwingAlternativePage() {
       ]}
       faqItems={[
         {
+          question: "Does Kapwing free add a watermark?",
+          answer: "Yes. Kapwing’s free exports include a watermark. FreeCropper exports without any watermark, so your videos stay clean.",
+        },
+        {
           question: "Is FreeCropper as good as Kapwing for cropping?",
           answer: "For cropping specifically? Yes. Same AI face detection, no watermark, no file size restrictions. Kapwing is great for more advanced editing, but if you just need to change aspect ratio or resize, FreeCropper is faster and doesn't add branding.",
         },

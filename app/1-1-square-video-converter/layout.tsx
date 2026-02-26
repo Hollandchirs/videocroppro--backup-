@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   keywords:
     "convert video to square, 1:1 video converter, square video maker, 1080x1080 video, crop video to square, resize video square free",
   alternates: {
-    canonical: "https://freecropper.com/convert-video-to-1-1",
+    canonical: "https://freecropper.com/1-1-square-video-converter",
   },
   openGraph: {
     title: "Convert Video to 1:1 Square Free — All Platforms",
     description: "Resize videos to 1:1 square for any social platform. AI face detection, no watermark.",
     type: "website",
-    url: "https://freecropper.com/convert-video-to-1-1",
+    url: "https://freecropper.com/1-1-square-video-converter",
     siteName: "Freecropper",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },

@@ -42,6 +42,16 @@ export default function ConvertVideoTo45Page() {
         { href: "/landscape-to-vertical", label: "Convert 16:9 to 9:16" },
         { href: "/", label: "All video cropping tools" },
       ]}
+      faqItems={[
+        {
+          question: "Why use 4:5 instead of 1:1?",
+          answer: "4:5 gives you more vertical screen space than 1:1 in Instagram and Facebook feeds, so your post looks larger on mobile.",
+        },
+        {
+          question: "What resolution is 4:5?",
+          answer: "The standard 4:5 size is 1080x1350. Freecropper exports at 1080x1350 when you select the 4:5 ratio.",
+        },
+      ]}
     />
   );
 }

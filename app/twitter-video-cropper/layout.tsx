@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   keywords:
     "crop video for twitter, twitter video size, x video dimensions, resize video twitter, twitter video aspect ratio, crop video for x",
   alternates: {
-    canonical: "https://freecropper.com/crop-video-for-twitter",
+    canonical: "https://freecropper.com/twitter-video-cropper",
   },
   openGraph: {
     title: "Crop Video for X (Twitter) Free — 16:9 & 1:1",
     description: "Resize videos for X/Twitter. AI face detection, no signup, no watermark.",
     type: "website",
-    url: "https://freecropper.com/crop-video-for-twitter",
+    url: "https://freecropper.com/twitter-video-cropper",
     siteName: "Freecropper",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },

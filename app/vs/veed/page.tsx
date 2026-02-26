@@ -65,6 +65,10 @@ export default function VeedAlternativePage() {
       ]}
       faqItems={[
         {
+          question: "Does Veed free add a watermark?",
+          answer: "Yes. Veed adds a watermark on free exports. FreeCropper exports are clean with no watermark.",
+        },
+        {
           question: "Is FreeCropper as good as Veed for cropping?",
           answer: "For cropping specifically? Yes. Same AI face detection, no watermark, no subscription required. Veed is great for more advanced video editing with subtitles and effects, but if you just need to change aspect ratio, FreeCropper is faster and doesn't require a subscription.",
         },

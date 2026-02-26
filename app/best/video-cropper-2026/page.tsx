@@ -3,16 +3,16 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://freecropper.com"),
-  title: "Best Free Video Cropper 2026 — No Watermark | FreeCropper",
+  title: "Best Free Online Video Cropper Tool 2026 — No Watermark | FreeCropper",
   description:
-    "Best free video cropper 2026. FreeCropper ranks #1: no watermark, no signup, AI face detection, 2GB files, 100% browser-based. See how CapCut, Kapwing, and InShot compare.",
+    "Best free online video cropper tool 2026. FreeCropper ranks #1: no watermark, no signup, AI face detection, 2GB files, 100% browser-based. Updated for 2025/2026 queries.",
   alternates: {
     canonical: "https://freecropper.com/best/video-cropper-2026",
   },
   openGraph: {
-    title: "Best Free Video Cropper 2026 — No Watermark | FreeCropper",
+    title: "Best Free Online Video Cropper Tool 2026 — No Watermark | FreeCropper",
     description:
-      "Best free video cropper 2026. FreeCropper ranks #1 — no watermark, no signup, AI face detection.",
+      "Best free online video cropper tool 2026. FreeCropper ranks #1 — no watermark, no signup, AI face detection.",
     type: "website",
     url: "https://freecropper.com/best/video-cropper-2026",
     siteName: "FreeCropper",
@@ -144,14 +144,18 @@ export default function BestVideoCropper2026Page() {
             Last updated: February 2026
           </p>
           <h1 className="text-4xl font-bold tracking-tight leading-tight mb-5">
-            Best Free Video Cropper 2026
+            Best Free Online Video Cropper 2026
           </h1>
           <p className="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
             <strong className="text-neutral-900 dark:text-neutral-100">
-              Best free video cropper
+              Best free online video cropper tool
             </strong>{" "}
             tools ranked by what actually matters: no watermark, no signup, and
             works for TikTok / Reels / Shorts.
+          </p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-3">
+            If you searched for "best free online video cropper tool 2025" or
+            "2026," this list is updated for February 2026.
           </p>
         </div>
 

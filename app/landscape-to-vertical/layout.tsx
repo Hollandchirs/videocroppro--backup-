@@ -7,14 +7,14 @@ export const metadata: Metadata = {
   keywords:
     "convert 16:9 to 9:16, landscape to portrait video, 16:9 to 9:16 converter, change video aspect ratio, horizontal to vertical video, free aspect ratio converter",
   alternates: {
-    canonical: "https://freecropper.com/convert-16-9-to-9-16",
+    canonical: "https://freecropper.com/landscape-to-vertical",
   },
   openGraph: {
     title: "Convert 16:9 to 9:16 Free — Landscape to Portrait Video",
     description:
       "Turn landscape videos into vertical with AI face detection. Free, no signup, no watermark.",
     type: "website",
-    url: "https://freecropper.com/convert-16-9-to-9-16",
+    url: "https://freecropper.com/landscape-to-vertical",
     siteName: "Freecropper",
     images: [
       {

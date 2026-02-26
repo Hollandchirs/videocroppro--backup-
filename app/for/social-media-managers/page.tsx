@@ -69,6 +69,10 @@ export default function ForSocialMediaManagersPage() {
           answer: "One tool handles all platforms and aspect ratios. No need for multiple subscriptions or logins. Share the link with your team, and they can crop videos without creating accounts or installing apps.",
         },
         {
+          question: "Can I export multiple platform sizes at once?",
+          answer: "Yes. Upload once and export multiple aspect ratios in one session to keep your content calendar consistent across platforms.",
+        },
+        {
           question: "Can I share FreeCropper with my team?",
           answer: "Yes. Share the freecropper.com link with your team. They can use it immediately without any account setup. Works for agencies managing multiple client social accounts.",
         },
